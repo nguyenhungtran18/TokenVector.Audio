@@ -85,7 +85,7 @@ Trước đây, ngành xử lý tín hiệu âm thanh cao cấp (DSP) và Neural
 Toàn bộ hệ thống được biên dịch và kiểm chứng trực tiếp bằng trình biên dịch TokenVector:
 
 ```powershell
-& "D:\TokenVector\3.code\dist\tkvc.exe" build "test_audio_engine.tkv" --entry run --out "test_audio_engine.exe"
+tkvc.exe build test_audio_engine.tkv --entry run --out test_audio_engine.exe
 .\test_audio_engine.exe
 ```
 

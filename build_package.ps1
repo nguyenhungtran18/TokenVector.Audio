@@ -9,17 +9,53 @@ Write-Host "==================================================================" 
 Write-Host "BUILDING TOKENVECTOR.AUDIO DLL & NUPKG PACKAGE" -ForegroundColor Cyan
 Write-Host "==================================================================" -ForegroundColor Cyan
 
-# 1. Compile .tkv sources to CIL Intermediate Assembly (.il)
-$compiler = "D:\TokenVector\3.code\dist\tkvc.exe"
-Write-Host "[1/3] Compiling .tkv sources with tkvc.exe..." -ForegroundColor Yellow
+# 1. Locate tkvc compiler dynamically
+$compiler = (Get-Command tkvc -ErrorAction SilentlyContinue)?.Source
+if (-not $compiler -or -not (Test-Path $compiler)) {
+    $candidates = @(
+        "tkvc.exe",
+        "$PSScriptRoot\tkvc.exe",
+        "D:\TokenVector\3.code\dist\tkvc.exe",
+        "..\dist\tkvc.exe",
+        "$env:LOCALAPPDATA\TokenVector\tkvc.exe",
+        "$env:USERPROFILE\.tkv\bin\tkvc.exe"
+    )
+    foreach ($c in $candidates) {
+        if (Test-Path $c) {
+            $compiler = (Resolve-Path $c).Path
+            break
+        }
+    }
+}
+if (-not $compiler -or -not (Test-Path $compiler)) {
+    throw "TokenVector compiler (tkvc.exe) not found. Please ensure 'tkvc' is added to PATH or located in project directory."
+}
+
+Write-Host "[1/3] Compiling .tkv sources with tkvc ($compiler)..." -ForegroundColor Yellow
 & $compiler build "test_audio_engine.tkv" --entry run --out "TokenVector.Audio.exe" | Out-Null
 
 if (-not (Test-Path "TokenVector.Audio.il")) {
     throw "Compilation failed: TokenVector.Audio.il was not produced."
 }
 
-# 2. Assemble CIL bytecode into .NET DLL Assembly (.dll)
-$ilasm = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\ilasm.exe"
+# 2. Locate ilasm.exe dynamically
+$ilasm = (Get-Command ilasm -ErrorAction SilentlyContinue)?.Source
+if (-not $ilasm -or -not (Test-Path $ilasm)) {
+    $ilasmCandidates = @(
+        "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\ilasm.exe",
+        "C:\Windows\Microsoft.NET\Framework\v4.0.30319\ilasm.exe"
+    )
+    foreach ($i in $ilasmCandidates) {
+        if (Test-Path $i) {
+            $ilasm = $i
+            break
+        }
+    }
+}
+if (-not $ilasm -or -not (Test-Path $ilasm)) {
+    throw "ECMA-335 CIL Assembler (ilasm.exe) not found on this system."
+}
+
 Write-Host "[2/3] Assembling CIL bytecode into TokenVector.Audio.dll..." -ForegroundColor Yellow
 
 if (-not (Test-Path "bin\Release\net8.0")) { New-Item -ItemType Directory -Path "bin\Release\net8.0" -Force | Out-Null }

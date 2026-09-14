@@ -85,7 +85,7 @@ For decades, advanced Digital Signal Processing (DSP) and Neural Audio engineeri
 Compiled and verified with the native TokenVector compiler toolchain:
 
 ```powershell
-& "D:\TokenVector\3.code\dist\tkvc.exe" build "test_audio_engine.tkv" --entry run --out "test_audio_engine.exe"
+tkvc.exe build test_audio_engine.tkv --entry run --out test_audio_engine.exe
 .\test_audio_engine.exe
 ```
 
