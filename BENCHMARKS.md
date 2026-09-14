@@ -30,6 +30,16 @@ All benchmarks executed and measured live on native x86-64 hardware using high-p
 ## 🔬 Benchmark Methodology & Environment
 
 - **Compiler Toolchain:** TokenVector Compiler (`tkvc.exe`) $\to$ Native CIL Assembly $\to$ `ilasm.exe /dll`.
-- **Measurement Tool:** `System.Diagnostics.Stopwatch` with high-resolution hardware counters.
+- **Measurement Tool:** `System.Diagnostics.Stopwatch` with high-resolution hardware counters ($10\text{ MHz}$ frequency).
 - **Warmup:** $1,000$ iterations pre-execution per test case to warm CPU caches and instruction pipelines.
 - **Garbage Collection Policy:** Zero dynamic heap allocation per sample loop across pure math DSP algorithms.
+
+---
+
+## 📖 Metrics Definition
+
+1. **Iterations ($20,000 - 100,000$):** Selected per algorithm to balance sampling duration ($> 2 - 5\text{ ms}$) and eliminate OS context-switch noise.
+2. **Latency ($\text{µs}$):** Average execution time per single operation or transform ($1\text{ µs} = 10^{-6}\text{ seconds}$).
+3. **Throughput ($\text{ops/s}$):** Total completed operations per second ($\text{Throughput} = 1 / \text{Latency}$).
+4. **Low Overhead vs Zero-GC:** In production in-place streaming (reusing pre-allocated frame buffers), all DSP filters operate with strict **Zero-GC ($0\text{ Bytes}$)**. The test wrapper for FFT includes dynamic instantiation of sample test arrays (~$54\text{ Bytes}$).
+

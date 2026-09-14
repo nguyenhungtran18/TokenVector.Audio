@@ -30,6 +30,16 @@ Toàn bộ các bài đo đạc được thực thi và đo lường trực ti�
 ## 🔬 Phương Pháp & Môi Trường Đo Đạc
 
 - **Trình biên dịch:** TokenVector Compiler (`tkvc.exe`) $\to$ Native CIL Assembly $\to$ `ilasm.exe /dll`.
-- **Thiết bị đo:** `System.Diagnostics.Stopwatch` với bộ đếm phần cứng vi mô độ phân giải $10\text{ MHz}$.
+- **Thiết bị đo:** `System.Diagnostics.Stopwatch` với bộ đếm phần cứng vi mô độ phân giải $10\text{ MHz}$ ($0.10\text{ µs}$).
 - **Warmup:** $1.000$ lần chạy khởi động trước mỗi bài đo để ổn định cache CPU và đường ống lệnh.
 - **Cơ chế thu gom rác:** Đạt $0\text{ Bytes}$ GC Allocation trên các thuật toán xử lý luồng số học lõi.
+
+---
+
+## 📖 Giải Thích Các Thuật Ngữ & Chỉ Số Đo Đạc
+
+1. **Số lần lặp (Iterations - $20.000$ đến $100.000$):** Được chọn phù hợp với khối lượng tính toán của từng thuật toán nhằm đảm bảo tổng thời gian đo đạt chuẩn ($> 2 - 5\text{ ms}$), loại bỏ sai số do chuyển đổi ngữ cảnh CPU (Context Switch).
+2. **Độ trễ (Latency - $\text{µs}$):** Thời gian CPU thực thi xong đúng 1 thao tác ($1\text{ µs} = 10^{-6}\text{ giây}$). Độ trễ càng thấp, âm thanh phát ra càng tức thì, không bị delay/lag khi xử lý thời gian thực.
+3. **Thông lượng (Throughput - $\text{ops/giây}$):** Số lượng thao tác tối đa mà thuật toán xử lý được trong 1 giây ($\text{Throughput} = 1 / \text{Latency}$). Thông lượng càng cao chứng tỏ thuật toán càng nhẹ, tiêu thụ rất ít tài nguyên CPU.
+4. **Low Overhead vs Zero-GC ($0\text{ Bytes}$):** Trong môi trường chạy thực tế (In-place Processing với các buffer cấp phát sẵn), toàn bộ các bộ lọc DSP hoạt động với mức **Zero-GC ($0\text{ Bytes}$)** tuyệt đối. Chỉ số $\approx 54\text{ Bytes}$ ở bài test FFT xuất phát từ việc khởi tạo mảng dữ liệu mẫu tạm thời bên trong hàm test wrapper.
+
