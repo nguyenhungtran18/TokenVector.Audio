@@ -26,8 +26,8 @@ if (-not (Test-Path "bin\Release\net8.0")) { New-Item -ItemType Directory -Path 
 & $ilasm "TokenVector.Audio.il" /dll /output:"bin\Release\TokenVector.Audio.dll" | Out-Null
 & $ilasm "TokenVector.Audio.il" /dll /output:"bin\Release\net8.0\TokenVector.Audio.dll" | Out-Null
 
-# 3. Package into NuGet Package (.nupkg) including README.md
-Write-Host "[3/3] Packaging into TokenVector.Audio.1.0.0.nupkg (with English README.md)..." -ForegroundColor Yellow
+# 3. Package into NuGet Package (.nupkg) including README.md & LICENSE
+Write-Host "[3/3] Packaging into TokenVector.Audio.1.0.0.nupkg (with README.md and LICENSE)..." -ForegroundColor Yellow
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
@@ -40,6 +40,7 @@ New-Item -ItemType Directory -Path "$pkgDir\package\services\metadata\core-prope
 
 Copy-Item "TokenVector.Audio.nuspec" "$pkgDir\TokenVector.Audio.nuspec"
 Copy-Item "README.md" "$pkgDir\README.md"
+Copy-Item "LICENSE" "$pkgDir\LICENSE"
 Copy-Item "bin\Release\net8.0\TokenVector.Audio.dll" "$pkgDir\lib\net8.0\TokenVector.Audio.dll"
 Copy-Item "bin\Release\TokenVector.Audio.dll" "$pkgDir\lib\net48\TokenVector.Audio.dll"
 
@@ -51,6 +52,8 @@ $contentTypes = @"
   <Default Extension="nuspec" ContentType="application/octet-stream" />
   <Default Extension="md" ContentType="text/markdown" />
   <Default Extension="dll" ContentType="application/octet-stream" />
+  <Default Extension="txt" ContentType="text/plain" />
+  <Default Extension="" ContentType="text/plain" />
 </Types>
 "@
 [System.IO.File]::WriteAllText("$pkgDir\[Content_Types].xml", $contentTypes)
