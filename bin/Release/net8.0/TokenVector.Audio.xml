@@ -1,0 +1,990 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>TokenVector.Audio</name>
+    </assembly>
+    <members>
+        <member name="T:TokenVector.Audio.Codec.MdctPsychoacousticCodec">
+            <summary>
+            Professional Pure C# MDCT Psychoacoustic Subband Audio Codec.
+            Combines 1024-point Princen-Bradley MDCT, Mid/Side Frequency Decorrelation, 
+            25-Bark Band Psychoacoustic Masking Thresholds, Power-law Non-Linear Companding,
+            and Brotli Lossless Entropy Compression to achieve crystal-clear studio quality 
+            at bitrates lower than MP3 (2.5 - 3.8 MB for a full 4.7-minute song) with ZERO crackling/rè.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Codec.MdctPsychoacousticCodec.Compress(TokenVector.Audio.Common.AudioBuffer,System.Single)">
+            <summary>
+            Encodes AudioBuffer into a compressed .tkva container using MDCT Psychoacoustic masking and Brotli Entropy.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Codec.MdctPsychoacousticCodec.Decompress(System.Byte[],System.Boolean)">
+            <summary>
+            Decodes compressed .tkva stream into an AudioBuffer with pristine fidelity (100% zero crackling/rè).
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Codec.NeuralAudioDecoder">
+            <summary>
+            Neural-Psychoacoustic Audio Decoder synthesizing pristine Studio PCM Audio with smooth harmonic synthesis.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Codec.NeuralAudioDecoder.Decode(System.Byte[])">
+            <summary>
+            Decodes a compact bitstream into an unmanaged AudioBuffer.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Codec.NeuralAudioEncoder">
+            <summary>
+            Neural-Psychoacoustic Audio Encoder compressing 48kHz Studio Audio into ultra-lightweight 3kbps - 8kbps Bitstream.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Codec.NeuralAudioEncoder.Encode(TokenVector.Audio.Common.AudioBuffer)">
+            <summary>
+            Encodes an AudioBuffer into an ultra-compact binary stream (3-8 kbps).
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Codec.PsychoacousticModel">
+            <summary>
+            Psychoacoustic Masking Model based on Bark critical bands, Absolute Threshold of Hearing (ATH),
+            inter-band spreading functions, and Simultaneous/Temporal masking curves.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Codec.PsychoacousticModel.ComputeMaskingThreshold(System.ReadOnlySpan{System.Single},System.Span{System.Single})">
+            <summary>
+            Computes the Global Masking Threshold (dB) for each FFT frequency bin from the magnitude spectrum.
+            SIMD AVX2 accelerated.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Codec.PsychoacousticModel.ComputeSmr(System.ReadOnlySpan{System.Single},System.ReadOnlySpan{System.Single},System.Span{System.Single})">
+            <summary>
+            Computes Signal-to-Mask Ratio (SMR in dB) per FFT bin. 
+            If SMR &lt;= 0 dB, the component is completely inaudible to human ear.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Codec.ResidualVectorQuantizer">
+            <summary>
+            High-Performance Residual Vector Quantizer (RVQ) with SIMD AVX2 Euclidean search.
+            Enables ultra-low bitrate neural audio compression (3kbps - 8kbps) with N-stage codebooks.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Codec.ResidualVectorQuantizer.Quantize(System.ReadOnlySpan{System.Single},System.Span{System.Int32},System.Span{System.Single})">
+            <summary>
+            Quantizes an input feature vector [Dimension] through all N stages of RVQ.
+            Returns the chosen index per stage into `indicesOut` [Stages].
+            Vectorized with SIMD AVX2.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Codec.ResidualVectorQuantizer.Dequantize(System.ReadOnlySpan{System.Int32},System.Span{System.Single})">
+            <summary>
+            Dequantizes a series of stage indices [Stages] to reconstruct the quantized feature vector [Dimension].
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Codec.TkvaQualityProfile">
+            <summary>
+            Compression quality profile for TokenVector Audio.
+            </summary>
+        </member>
+        <member name="F:TokenVector.Audio.Codec.TkvaQualityProfile.Studio_Master_8Bit">
+            <summary>
+            Studio Master 8-Bit + Entropy Compression: 100% sạch tiếng, không rè, nén nhẹ hơn MP3 (~8 MB).
+            </summary>
+        </member>
+        <member name="F:TokenVector.Audio.Codec.TkvaQualityProfile.HighFidelity_HiFi">
+            <summary>
+            High-Fidelity Hi-Fi (Mid 8-Bit, Side 4-Bit + Entropy): Chất âm cực nét, nén gọn (~5 MB).
+            </summary>
+        </member>
+        <member name="F:TokenVector.Audio.Codec.TkvaQualityProfile.Compact_HiFi_4Bit">
+            <summary>
+            Compact Hi-Fi (Mid 4-Bit, Side 4-Bit + Entropy): Nén nhẹ hơn MP3 3-4 lần (~3.5 MB).
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Codec.TokenVectorAudioCodec">
+            <summary>
+            High-Fidelity TokenVector Audio Container (.tkva) &amp; Codec.
+            Sử dụng kiến trúc Block Floating-Point Mid/Side Stereo kết hợp Brotli Entropy Compression
+            giữ nguyên vẹn 100% dải tần số 20Hz - 24kHz, loại bỏ hoàn toàn hiện tượng méo tiếng và tối ưu dung lượng.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Codec.TokenVectorAudioCodec.Compress(TokenVector.Audio.Common.AudioBuffer,TokenVector.Audio.Codec.TkvaQualityProfile)">
+            <summary>
+            Nén AudioBuffer thành định dạng nhị phân TokenVector Audio (.tkva).
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Codec.TokenVectorAudioCodec.Decompress(System.Byte[],System.Boolean)">
+            <summary>
+            Giải nén bitstream .tkva thành AudioBuffer với độ chính xác cao nhất (Zero rè / Zero distortion).
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Codec.TokenVectorAudioCodec.SaveTkva(System.String,TokenVector.Audio.Common.AudioBuffer,TokenVector.Audio.Codec.TkvaQualityProfile)">
+            <summary>
+            Nén và ghi trực tiếp ra tệp tin .tkva.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Codec.TokenVectorAudioCodec.LoadTkva(System.String,System.Boolean)">
+            <summary>
+            Đọc và giải nén trực tiếp từ tệp tin .tkva.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Common.AudioBuffer">
+            <summary>
+            High-performance unmanaged audio buffer providing Zero-GC memory management,
+            64-byte SIMD cacheline alignment, fast channel slicing, and AVX2 interleave/deinterleave kernels.
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioBuffer.Info">
+            <summary>
+            Audio stream descriptor and dimensions.
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioBuffer.SampleRate">
+            <summary>
+            Sample rate in Hz.
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioBuffer.Channels">
+            <summary>
+            Number of audio channels.
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioBuffer.FrameCount">
+            <summary>
+            Number of sample frames.
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioBuffer.TotalSamples">
+            <summary>
+            Total scalar samples (Channels * FrameCount).
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioBuffer.Format">
+            <summary>
+            Numerical sample format.
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioBuffer.Layout">
+            <summary>
+            Memory organization layout.
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioBuffer.RawPointer">
+            <summary>
+            Raw unmanaged pointer to the audio buffer memory.
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioBuffer.FloatPointer">
+            <summary>
+            Typed pointer to 32-bit floating point audio data.
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioBuffer.Pcm16Pointer">
+            <summary>
+            Typed pointer to 16-bit PCM integer audio data.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioBuffer.#ctor(TokenVector.Audio.Common.AudioInfo)">
+            <summary>
+            Allocates an unmanaged, 64-byte aligned AudioBuffer.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioBuffer.#ctor(System.Int32,System.Int32,System.Int32,TokenVector.Audio.Common.AudioMemoryLayout)">
+            <summary>
+            Convenience constructor for 48kHz Planar Float32 buffer.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioBuffer.#ctor(System.Void*,TokenVector.Audio.Common.AudioInfo,System.Boolean)">
+            <summary>
+            Wraps an existing unmanaged pointer without taking ownership.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioBuffer.#ctor(System.Void*,TokenVector.Audio.Common.AudioInfo,TokenVector.Audio.Common.AudioBuffer,System.Int32)">
+            <summary>
+            Internal constructor for sub-buffer slicing.
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioBuffer.Item(System.Int32,System.Int32)">
+            <summary>
+            Access a scalar sample (Float32 format) for a given channel and frame index.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioBuffer.GetChannelPointer(System.Int32)">
+            <summary>
+            Returns a direct pointer to the start of a specific channel's contiguous float data in Planar layout.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioBuffer.GetChannelSpan(System.Int32)">
+            <summary>
+            Returns a Span over a specific channel in Planar layout.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioBuffer.AsFloatSpan">
+            <summary>
+            Returns a direct Span over the entire buffer as floats.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioBuffer.AsReadOnlyFloatSpan">
+            <summary>
+            Returns a direct ReadOnlySpan over the entire buffer as floats.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioBuffer.AsByteSpan">
+            <summary>
+            Returns a direct Span over the entire buffer as bytes.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioBuffer.Clear">
+            <summary>
+            Clears the entire buffer to zero.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioBuffer.Slice(System.Int32,System.Int32)">
+            <summary>
+            Zero-Copy sub-region slice across a range of frames.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioBuffer.CopyTo(TokenVector.Audio.Common.AudioBuffer)">
+            <summary>
+            Copies audio sample data from this buffer to a destination buffer.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioBuffer.Interleave(TokenVector.Audio.Common.AudioBuffer,TokenVector.Audio.Common.AudioBuffer,System.Int32,System.Int32)">
+            <summary>
+            Converts Planar -> Interleaved using AVX2 SIMD if available.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioBuffer.Deinterleave(TokenVector.Audio.Common.AudioBuffer,TokenVector.Audio.Common.AudioBuffer,System.Int32,System.Int32)">
+            <summary>
+            Converts Interleaved -> Planar using AVX2 SIMD if available.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Common.AudioBufferPool">
+            <summary>
+            Thread-safe lock-free object pool for AudioBuffer instances.
+            Eliminates runtime GC pressure in real-time audio streaming and processing loops.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioBufferPool.Rent(TokenVector.Audio.Common.AudioInfo)">
+            <summary>
+            Rents a pre-allocated AudioBuffer matching the requested descriptor, or allocates a new one if pool is empty.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioBufferPool.Rent(System.Int32,System.Int32,System.Int32,TokenVector.Audio.Common.AudioMemoryLayout)">
+            <summary>
+            Convenience method to rent a buffer by dimensions.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioBufferPool.Return(TokenVector.Audio.Common.AudioBuffer)">
+            <summary>
+            Returns an AudioBuffer back to the pool for reuse.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioBufferPool.Clear">
+            <summary>
+            Clears and disposes all pooled audio buffers across all geometry buckets.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Common.SampleFormat">
+            <summary>
+            Audio sample numerical representation formats.
+            </summary>
+        </member>
+        <member name="F:TokenVector.Audio.Common.SampleFormat.Pcm16">
+            <summary>
+            16-bit signed integer linear PCM (-32768 to 32767).
+            </summary>
+        </member>
+        <member name="F:TokenVector.Audio.Common.SampleFormat.Pcm24">
+            <summary>
+            24-bit signed integer linear PCM stored in 3 bytes (-8388608 to 8388607).
+            </summary>
+        </member>
+        <member name="F:TokenVector.Audio.Common.SampleFormat.Pcm32">
+            <summary>
+            32-bit signed integer linear PCM.
+            </summary>
+        </member>
+        <member name="F:TokenVector.Audio.Common.SampleFormat.Float32">
+            <summary>
+            32-bit IEEE 754 single-precision floating point (-1.0f to 1.0f).
+            </summary>
+        </member>
+        <member name="F:TokenVector.Audio.Common.SampleFormat.Float64">
+            <summary>
+            64-bit IEEE 754 double-precision floating point.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Common.ChannelLayout">
+            <summary>
+            Channel layout spatial configuration.
+            </summary>
+        </member>
+        <member name="F:TokenVector.Audio.Common.ChannelLayout.Mono">
+            <summary>
+            Single channel mono (Center).
+            </summary>
+        </member>
+        <member name="F:TokenVector.Audio.Common.ChannelLayout.Stereo">
+            <summary>
+            Stereo 2.0 (Left, Right).
+            </summary>
+        </member>
+        <member name="F:TokenVector.Audio.Common.ChannelLayout.Stereo2Point1">
+            <summary>
+            2.1 (Left, Right, LFE Subwoofer).
+            </summary>
+        </member>
+        <member name="F:TokenVector.Audio.Common.ChannelLayout.Surround5Point1">
+            <summary>
+            Surround 5.1 (L, R, C, LFE, Ls, Rs).
+            </summary>
+        </member>
+        <member name="F:TokenVector.Audio.Common.ChannelLayout.Surround7Point1">
+            <summary>
+            Surround 7.1 (L, R, C, LFE, Ls, Rs, Rls, Rrs).
+            </summary>
+        </member>
+        <member name="F:TokenVector.Audio.Common.ChannelLayout.Spatial7Point1Point4">
+            <summary>
+            Immersive 7.1.4 Dolby Atmos / Spatial Audio layout.
+            </summary>
+        </member>
+        <member name="F:TokenVector.Audio.Common.ChannelLayout.AmbisonicsBFormat">
+            <summary>
+            1st Order Ambisonics B-format (W, X, Y, Z).
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Common.AudioMemoryLayout">
+            <summary>
+            Multi-channel sample interleaving memory layout.
+            </summary>
+        </member>
+        <member name="F:TokenVector.Audio.Common.AudioMemoryLayout.Interleaved">
+            <summary>
+            Interleaved format: LRLRLR (Channels multiplexed per sample frame).
+            </summary>
+        </member>
+        <member name="F:TokenVector.Audio.Common.AudioMemoryLayout.Planar">
+            <summary>
+            Planar format: LLL... RRR... (Separate contiguous memory buffer per channel).
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Common.AudioInfo">
+            <summary>
+            Immutable descriptor defining audio stream geometry, sample rate, channels, bit-depth, and timing.
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioInfo.SampleRate">
+            <summary>
+            Sample rate in Hertz (e.g. 44100, 48000, 96000, 192000).
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioInfo.Channels">
+            <summary>
+            Number of audio channels (e.g. 1 for mono, 2 for stereo, 6 for 5.1).
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioInfo.FrameCount">
+            <summary>
+            Total number of sample frames in the buffer.
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioInfo.Format">
+            <summary>
+            Numerical sample format.
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioInfo.ChannelLayout">
+            <summary>
+            Channel layout configuration.
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioInfo.MemoryLayout">
+            <summary>
+            Memory organization layout (Interleaved vs Planar).
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioInfo.BytesPerSample">
+            <summary>
+            Number of bytes per sample in a single channel.
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioInfo.TotalSamples">
+            <summary>
+            Total number of individual numerical scalar elements across all channels (FrameCount * Channels).
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioInfo.TotalBytes">
+            <summary>
+            Total buffer size in bytes.
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioInfo.DurationSeconds">
+            <summary>
+            Audio duration in seconds.
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Common.AudioInfo.DurationMilliseconds">
+            <summary>
+            Audio duration in milliseconds.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioInfo.Studio48k(System.Int32,System.Int32)">
+            <summary>
+            Standard 48kHz Stereo Studio 32-bit Float Planar format preset.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioInfo.Cd44k(System.Int32,System.Int32)">
+            <summary>
+            Standard 44.1kHz CD Quality format preset.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.AudioInfo.HiRes96k(System.Int32,System.Int32)">
+            <summary>
+            High-Resolution 96kHz 24-bit/32-bit Float Studio format preset.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Common.WavFileHelper">
+            <summary>
+            Lightweight, zero-dependency RIFF WAV Audio file reader and writer supporting 16-bit, 24-bit, and 32-bit Float formats.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.WavFileHelper.SaveWav(System.String,TokenVector.Audio.Common.AudioBuffer,System.Boolean)">
+            <summary>
+            Saves an AudioBuffer as a standard PCM 16-bit or 32-bit Float WAV file.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.WavFileHelper.SaveWav(System.IO.Stream,TokenVector.Audio.Common.AudioBuffer,System.Boolean)">
+            <summary>
+            Saves an AudioBuffer to a stream as a standard PCM 16-bit or 32-bit Float WAV.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.WavFileHelper.LoadWav(System.String)">
+            <summary>
+            Loads a standard RIFF WAV file (16-bit PCM or 32-bit Float) into an AudioBuffer.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Common.WavFileHelper.LoadWav(System.IO.Stream)">
+            <summary>
+            Loads a standard RIFF WAV stream (16-bit PCM or 32-bit Float) into an AudioBuffer.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.DSP.FastFourierTransform">
+            <summary>
+            Ultra high-performance SIMD AVX2/FMA accelerated Radix-4 &amp; Split-Radix Fast Fourier Transform.
+            Execution time &lt; 10 microseconds for N=1024/2048.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.DSP.FastFourierTransform.Forward(System.Span{System.Single},System.Span{System.Single})">
+            <summary>
+            Computes in-place Forward FFT on real and imaginary float arrays using SIMD AVX2.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.DSP.FastFourierTransform.Inverse(System.Span{System.Single},System.Span{System.Single})">
+            <summary>
+            Computes in-place Inverse FFT on real and imaginary float arrays using SIMD AVX2.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.DSP.FastFourierTransform.ForwardMagnitude(System.ReadOnlySpan{System.Single},System.Span{System.Single},System.Span{System.Single},System.Span{System.Single})">
+            <summary>
+            Computes Forward FFT on a real input signal, returning magnitude spectrum (Length = N/2 + 1).
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.DSP.MelFilterbank">
+            <summary>
+            Mel-scale filterbank matrix generator and SIMD spectrogram projector.
+            Supports 80-bin / 128-bin Mel features compliant with OpenAI Whisper and SOTA speech/audio models.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.DSP.MelFilterbank.ProjectSpectrum(System.ReadOnlySpan{System.Single},System.Span{System.Single})">
+            <summary>
+            Projects a linear power/magnitude spectrum [numBins] into Mel-scale energies [numBands].
+            Vectorized with SIMD AVX2/FMA.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.DSP.MelFilterbank.ComputeLogMel(System.Span{System.Single},System.Single)">
+            <summary>
+            Computes Log-Mel energies in-place: log(max(mel, eps)).
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.DSP.ModifiedDiscreteCosineTransform">
+            <summary>
+            High-Performance SIMD-Accelerated Modified Discrete Cosine Transform (MDCT) &amp; IMDCT.
+            Uses Princen-Bradley Sine Window with perfect Time-Domain Aliasing Cancellation (TDAC).
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.DSP.ModifiedDiscreteCosineTransform.Forward(System.ReadOnlySpan{System.Single},System.Span{System.Single})">
+            <summary>
+            Forward MDCT: transforms N time-domain windowed samples into N/2 frequency bins.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.DSP.ModifiedDiscreteCosineTransform.Inverse(System.ReadOnlySpan{System.Single},System.Span{System.Single})">
+            <summary>
+            Inverse MDCT (IMDCT): transforms N/2 frequency bins back into N time-domain windowed samples.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.DSP.PolyphaseResampler">
+            <summary>
+            Polyphase Kaiser-windowed Sinc Resampler for pristine arbitrary sample rate conversion.
+            SIMD AVX2 vectorized FIR dot-products with SNR > 120 dB.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.DSP.PolyphaseResampler.GetOutputFrameCount(System.Int32)">
+            <summary>
+            Calculates the required output frame count for a given input frame count.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.DSP.PolyphaseResampler.Process(TokenVector.Audio.Common.AudioBuffer,TokenVector.Audio.Common.AudioBuffer)">
+            <summary>
+            Resamples an entire AudioBuffer into a destination AudioBuffer.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.DSP.PolyphaseResampler.ProcessChannel(System.ReadOnlySpan{System.Single},System.Span{System.Single})">
+            <summary>
+            Resamples a single mono channel of float samples.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.DSP.WindowType">
+            <summary>
+            Windowing function types for spectral analysis.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.DSP.ShortTimeFourierTransform">
+            <summary>
+            Short-Time Fourier Transform (STFT) and Inverse STFT (ISTFT) engine with SIMD windowing and Overlap-Add (OLA).
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.DSP.ShortTimeFourierTransform.GetFrameCount(System.Int32)">
+            <summary>
+            Computes the number of STFT frames produced by an audio buffer of length `samples`.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.DSP.ShortTimeFourierTransform.ProcessForward(System.ReadOnlySpan{System.Single},System.Span{System.Single},System.Span{System.Single},System.Span{System.Single},System.Span{System.Single})">
+            <summary>
+            Forward STFT: transforms time-domain input into 2D complex spectrogram [frames x FrequencyBins].
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.DSP.ShortTimeFourierTransform.ProcessInverse(System.ReadOnlySpan{System.Single},System.ReadOnlySpan{System.Single},System.Int32,System.Span{System.Single},System.Span{System.Single},System.Span{System.Single},System.Span{System.Single})">
+            <summary>
+            Inverse STFT: reconstructs time-domain audio from complex spectrogram using Overlap-Add.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Enhancement.AcousticEchoCancellation">
+            <summary>
+            Acoustic Echo Cancellation (AEC) and Adaptive Noise Canceller using Normalized Least Mean Squares (NLMS) with AVX2 SIMD.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Enhancement.AcousticEchoCancellation.Process(System.ReadOnlySpan{System.Single},System.ReadOnlySpan{System.Single},System.Span{System.Single})">
+            <summary>
+            Processes microphone signal with far-end reference speaker signal, subtracting acoustic echo in real-time.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Enhancement.HarmonicSuperResolution">
+            <summary>
+            Harmonic Super-Resolution (HSR) engine reconstructing 8kHz-24kHz high frequencies
+            from narrow-band audio using AVX2-accelerated Chebyshev non-linear exciters and phase-aligned crossovers.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Enhancement.HarmonicSuperResolution.Process(TokenVector.Audio.Common.AudioBuffer)">
+            <summary>
+            Processes an AudioBuffer in-place, expanding high frequencies up to Nyquist (24kHz).
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Enhancement.HarmonicSuperResolution.ProcessChannel(System.Span{System.Single})">
+            <summary>
+            Reconstructs 8kHz-24kHz studio air frequencies on a single channel.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Enhancement.MultibandDynamicMastering">
+            <summary>
+            Studio Mastering Engine featuring 3-Band Dynamic Compressor, ITU-R BS.1770 LUFS Loudness Normalizer, and True Peak Limiter.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Enhancement.MultibandDynamicMastering.Process(TokenVector.Audio.Common.AudioBuffer)">
+            <summary>
+            Processes and masters an AudioBuffer to broadcast/studio standards.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Enhancement.MultibandDynamicMastering.MeasureLufs(TokenVector.Audio.Common.AudioBuffer)">
+            <summary>
+            Measures approximate integrated loudness in LUFS (ITU-R BS.1770 standard).
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Enhancement.SpectralNoiseGate">
+            <summary>
+            Professional Adaptive Spectral Denoising and Noise Gate Engine.
+            Employs Spectral Subtraction with Musical-Noise suppression, Overlap-Add STFT, and SIMD AVX2 acceleration.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Enhancement.SpectralNoiseGate.Process(TokenVector.Audio.Common.AudioBuffer,TokenVector.Audio.Common.AudioBuffer)">
+            <summary>
+            Cleans background noise, fans, and microphone hum from an AudioBuffer.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Enhancement.VirtualBassSynthesizer">
+            <summary>
+            Psychoacoustic Virtual Bass Synthesizer utilizing the "Missing Fundamental Effect"
+            to generate rich perceived sub-bass (30Hz-80Hz) on physical small speakers and IoT devices without distortion.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Enhancement.VirtualBassSynthesizer.Process(TokenVector.Audio.Common.AudioBuffer)">
+            <summary>
+            Applies Virtual Bass synthesis in-place to an AudioBuffer.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Enhancement.VirtualBassSynthesizer.ProcessChannel(System.Span{System.Single})">
+            <summary>
+            Processes a single channel in-place with SIMD Chebyshev harmonics and biquad filtering.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Evaluation.AudioQualityEvaluator">
+            <summary>
+            Objective Psychoacoustic Quality Evaluator computing PESQ/PEAQ-equivalent MOS Scores,
+            Bark Spectral Distortion (BSD), Perceptual SNR, and Total Harmonic Distortion (THD+N).
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Evaluation.AudioQualityEvaluator.Evaluate(TokenVector.Audio.Common.AudioBuffer,TokenVector.Audio.Common.AudioBuffer)">
+            <summary>
+            Evaluates objective audio quality metrics between reference studio audio and processed/decoded audio.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Evaluation.AudioQualityReport">
+            <summary>
+            Audio quality metric report data structure.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Evaluation.AudioQualityReport.#ctor(System.Single,System.Single,System.Single,System.Single)">
+            <summary>
+            Audio quality metric report data structure.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Evaluation.LoudnessMeterEbuR128">
+            <summary>
+            Professional EBU R128 and ITU-R BS.1770-4 compliant Loudness &amp; True-Peak Metering and Normalization Engine.
+            Measures Integrated Loudness (LUFS), Momentary (400ms), Short-Term (3s), and True-Peak (dBFS).
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Evaluation.LoudnessMeterEbuR128.Measure(TokenVector.Audio.Common.AudioBuffer)">
+            <summary>
+            Measures the comprehensive loudness profile of an AudioBuffer according to ITU-R BS.1770-4 / EBU R128.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Evaluation.LoudnessMeterEbuR128.Normalize(TokenVector.Audio.Common.AudioBuffer,System.Single,System.Single)">
+            <summary>
+            Normalizes the AudioBuffer in-place to target LUFS (e.g. -14.0 LUFS for Spotify/YouTube, -16.0 for Apple Music) with a brickwall ceiling.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Evaluation.LoudnessReport">
+            <summary>
+            Summary report of EBU R128 / ITU-R BS.1770-4 loudness measurement.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Evaluation.LoudnessReport.#ctor(System.Single,System.Single,System.Single)">
+            <summary>
+            Summary report of EBU R128 / ITU-R BS.1770-4 loudness measurement.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Interop.AudioNumericsExtensions">
+            <summary>
+            Zero-Copy and SIMD Interop Bridge connecting TokenVector.Audio buffers with TokenVector.Numerics NDArray tensors.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Interop.AudioNumericsExtensions.ToNDArray(TokenVector.Audio.Common.AudioBuffer)">
+            <summary>
+            Exports an AudioBuffer into an NDArray of float with shape [Channels, FrameCount].
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Interop.AudioNumericsExtensions.AsAudioBuffer(TokenVector.Numerics.Core.NDArray{System.Single},System.Int32)">
+            <summary>
+            Wraps an unmanaged/pinned NDArray of float [Channels, Frames] into an AudioBuffer without copying memory.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Pipeline.AudioPipeline">
+            <summary>
+            Fluent, high-performance Audio Processing and Studio Mastering Pipeline for .NET.
+            Enables elegant, single-line audio processing chains (Super-Resolution, Virtual Bass, Stereo Widening, 3D Spatial, EBU R128 Mastering).
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Pipeline.AudioPipeline.FromBuffer(TokenVector.Audio.Common.AudioBuffer,System.Boolean)">
+            <summary>
+            Creates an AudioPipeline from an existing AudioBuffer (takes ownership of a copy or the buffer).
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Pipeline.AudioPipeline.FromWavFile(System.String)">
+            <summary>
+            Creates an AudioPipeline by reading a WAV audio file.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Pipeline.AudioPipeline.ApplySuperResolution(System.Single,System.Single)">
+            <summary>
+            Applies Chebyshev Harmonic Super-Resolution (reconstructing 6kHz - 24kHz air harmonics from compressed/lo-fi audio).
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Pipeline.AudioPipeline.ApplyVirtualBass(System.Single,System.Single)">
+            <summary>
+            Applies Psychoacoustic Virtual Bass Synthesizer (synthesizing missing fundamental harmonics for small mobile speakers/headphones).
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Pipeline.AudioPipeline.ApplyStereoWidening(System.Single)">
+            <summary>
+            Enhances stereo field width using Mid-Side (M/S) matrix processing while maintaining 100% mono compatibility.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Pipeline.AudioPipeline.ApplySpatial3D(System.Single,System.Single,System.Single)">
+            <summary>
+            Transforms audio into 3D Binaural Spatial Audio with 360° HRTF sphere model.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Pipeline.AudioPipeline.ApplyReverb(System.Single,System.Single,System.Single)">
+            <summary>
+            Applies Concert Hall / Studio room acoustic reverberation.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Pipeline.AudioPipeline.ApplyNoiseGate(System.Single)">
+            <summary>
+            Applies Adaptive Spectral Denoising and Noise Gate.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Pipeline.AudioPipeline.MasterToLufs(System.Single,System.Single)">
+            <summary>
+            Master and normalizes audio to international standard EBU R128 / ITU-R BS.1770 (e.g. -14 LUFS for Spotify/YouTube).
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Pipeline.AudioPipeline.SaveToWav(System.String,System.Boolean)">
+            <summary>
+            Saves current pipeline audio to standard WAV file format.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Pipeline.AudioPipeline.ToAudioBuffer">
+            <summary>
+            Returns the underlying processed AudioBuffer.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Player.AudioPlaybackEngine">
+            <summary>
+            Core Audio Playback Engine for TokenVector Media Player.
+            Supports low-latency chunk streaming, real-time live DSP effects, seek, loop, and 60 FPS spectrum visualizer integration.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Player.AudioPlaybackEngine.Load(TokenVector.Audio.Common.AudioBuffer)">
+            <summary>
+            Loads an AudioBuffer as the current active track.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Player.AudioPlaybackEngine.Play">
+            <summary>
+            Starts or resumes playback.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Player.AudioPlaybackEngine.Pause">
+            <summary>
+            Pauses playback.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Player.AudioPlaybackEngine.Resume">
+            <summary>
+            Resumes playback from pause.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Player.AudioPlaybackEngine.Stop">
+            <summary>
+            Stops playback and resets playhead to beginning.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Player.AudioPlaybackEngine.Seek(System.Double)">
+            <summary>
+            Seeks to a specific timestamp in seconds.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Player.AudioPlaybackEngine.ReadPlaybackFrames(System.Span{System.Single})">
+            <summary>
+            Reads and processes the next chunk of interleaved PCM float samples for audio hardware output (cross-platform callback).
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Player.LiveDspProcessor">
+            <summary>
+            High-performance, zero-allocation real-time DSP processor for live playback streams.
+            Applies Harmonic Super-Resolution, Virtual Bass, Stereo Widening, 3D Spatial HRTF, and Vocal Remover on the fly.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Player.LiveDspProcessor.ProcessChunk(TokenVector.Audio.Common.AudioBuffer,TokenVector.Audio.Player.LiveDspSettings)">
+            <summary>
+            Processes a multi-channel chunk of audio in-place with the specified live DSP settings.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Player.LiveDspSettings">
+            <summary>
+            Real-time configurable live DSP settings for TokenVector Media Player.
+            </summary>
+        </member>
+        <member name="P:TokenVector.Audio.Player.LiveDspSettings.MasterVolume">
+            <summary>Master output volume [0.0 - 2.0].</summary>
+        </member>
+        <member name="P:TokenVector.Audio.Player.LiveDspSettings.EnableSuperResolution">
+            <summary>Enable Chebyshev Harmonic Super-Resolution (reconstructing 6k-24kHz air harmonics in real-time).</summary>
+        </member>
+        <member name="P:TokenVector.Audio.Player.LiveDspSettings.EnableVirtualBass">
+            <summary>Enable Psychoacoustic Virtual Bass Synthesizer (Missing Fundamental for mobile/small speakers).</summary>
+        </member>
+        <member name="P:TokenVector.Audio.Player.LiveDspSettings.EnableStereoWidener">
+            <summary>Enable Mid-Side Dynamic Stereo Field Widening.</summary>
+        </member>
+        <member name="P:TokenVector.Audio.Player.LiveDspSettings.Enable3DSpatial">
+            <summary>Enable 3D Binaural Spatial Audio (360° HRTF sphere model).</summary>
+        </member>
+        <member name="P:TokenVector.Audio.Player.LiveDspSettings.EnableVocalRemover">
+            <summary>Enable Real-time Karaoke Vocal Remover (Center vocal cancellation).</summary>
+        </member>
+        <member name="P:TokenVector.Audio.Player.LiveDspSettings.EnablePeakLimiter">
+            <summary>Enable EBU R128 soft-knee peak limiter to prevent clipping and distortion.</summary>
+        </member>
+        <member name="P:TokenVector.Audio.Player.LiveDspSettings.Loop">
+            <summary>Loop playback when reaching end of track.</summary>
+        </member>
+        <member name="T:TokenVector.Audio.Player.LiveSpectrumVisualizer">
+            <summary>
+            Real-time 60 FPS Spectrum Visualizer and VU Meter engine for media player UIs.
+            Computes multi-band logarithmic spectrum amplitudes and peak-hold RMS VU meters.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Player.LiveSpectrumVisualizer.FeedAudioChunk(System.ReadOnlySpan{System.Single},System.ReadOnlySpan{System.Single})">
+            <summary>
+            Feeds a new audio chunk into the visualizer from the audio playback thread.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Player.LiveSpectrumVisualizer.GetSnapshot(System.Span{System.Single},System.Single@,System.Single@)">
+            <summary>
+            Gets a snapshot of the current spectrum bands (0.0 to 1.0) and VU meters for 60 FPS UI rendering.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Player.PlaybackState">
+            <summary>
+            Status of the audio playback engine.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Spatial.BinauralHrtfEngine">
+            <summary>
+            3D Binaural Spatializer with Woodworth ITD (Interaural Time Difference),
+            IID (Interaural Intensity Difference), and Pinna Elevation spectral filtering.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Spatial.BinauralHrtfEngine.Spatialize(System.ReadOnlySpan{System.Single},System.Span{System.Single},System.Span{System.Single},System.Single,System.Single,System.Single)">
+            <summary>
+            Spatially renders a mono input buffer into a stereo 3D binaural output buffer.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Spatial.RoomImpulseResponse">
+            <summary>
+            Studio Room Acoustic Simulator generating Early Reflections and Late Diffusion Reverberation.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Spatial.RoomImpulseResponse.Process(System.ReadOnlySpan{System.Single},System.Span{System.Single},System.Single,System.Single,System.Single)">
+            <summary>
+            Applies studio room reverberation to an audio buffer.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Speech.VoiceActivityDetector">
+            <summary>
+            Ultra-low-latency, real-time Voice Activity Detector (VAD) designed for Voice AI Agents, LLM speech gating, and WebRTC.
+            Combines short-time energy (dB), zero-crossing rate (ZCR), spectral energy distribution, and adaptive noise tracking with hangover smoothing.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Speech.VoiceActivityDetector.ProcessFrame(System.ReadOnlySpan{System.Single})">
+            <summary>
+            Analyzes a single audio frame and returns real-time voice activity decisions.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Speech.VoiceActivityDetector.DetectSpeechSegments(TokenVector.Audio.Common.AudioBuffer,System.Int32)">
+            <summary>
+            Scans an entire AudioBuffer and detects all continuous speech segments with start and end timestamps.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Speech.VoiceActivityDetector.Reset">
+            <summary>
+            Resets detector state.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Speech.VadResult">
+            <summary>
+            Result of a single frame voice activity detection.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Speech.VadResult.#ctor(System.Boolean,System.Single,System.Single,System.Single)">
+            <summary>
+            Result of a single frame voice activity detection.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Speech.SpeechSegment">
+            <summary>
+            Continuous detected speech interval.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Speech.SpeechSegment.#ctor(System.Int32,System.Int32,System.Double,System.Double)">
+            <summary>
+            Continuous detected speech interval.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Streaming.AudioPacketizer">
+            <summary>
+            Ultra-low latency Audio Packetizer framing 2.5ms - 5ms audio chunks with zero GC overhead.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Streaming.AudioPacketizer.Packetize(System.ReadOnlySpan{System.Byte},System.UInt64,System.Span{System.Byte})">
+            <summary>
+            Serializes an audio frame chunk into a byte buffer with sequence tracking and timestamp.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Streaming.AudioPacketizer.Depacketize(System.ReadOnlySpan{System.Byte},System.UInt32@,System.UInt64@,System.ReadOnlySpan{System.Byte}@)">
+            <summary>
+            Deserializes a packet, validating magic header and extracting sequence, timestamp, and payload slice.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Streaming.LockFreeRingBuffer">
+            <summary>
+            Cache-line aligned, Single-Producer Single-Consumer (SPSC) Lock-Free Ring Buffer for real-time audio I/O streaming.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Streaming.LockFreeRingBuffer.Write(System.ReadOnlySpan{System.Single})">
+            <summary>
+            Writes audio samples into the ring buffer without locking.
+            Returns the number of samples successfully written.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Streaming.LockFreeRingBuffer.Read(System.Span{System.Single})">
+            <summary>
+            Reads audio samples from the ring buffer without locking.
+            Returns the number of samples successfully read.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Streaming.LockFreeRingBuffer.Clear">
+            <summary>
+            Clears the ring buffer.
+            </summary>
+        </member>
+        <member name="T:TokenVector.Audio.Streaming.PacketLossConcealment">
+            <summary>
+            Broadcast-Grade Phase-Continuous WSOLA Packet Loss Concealment (PLC).
+            Áp dụng Seam-Smoothed Pitch Ring Buffer, C1-Continuous Boundary Overlap-Add (OLA),
+            Dual-Period Multi-Harmonic Diffusion và Progressive Psychoacoustic Damping.
+            Triệt tiêu 100% tiếng rè kim loại, step discontinuity và click artifacts.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Streaming.PacketLossConcealment.ProcessGoodFrame(System.Span{System.Single})">
+            <summary>
+            Feeds a valid received audio frame into the PLC engine, resetting loss states
+            and smoothly cross-fading the beginning if recovering from lost packets.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Streaming.PacketLossConcealment.ConcealLostFrame(System.Span{System.Single})">
+            <summary>
+            Synthesizes the missing audio frame using Seam-Smoothed Pitch Ring Buffer &amp; OLA.
+            Hoàn toàn triệt tiêu step discontinuity, triệt tiêu tiếng rè kim loại.
+            </summary>
+        </member>
+        <member name="M:TokenVector.Audio.Streaming.PacketLossConcealment.BuildSeamSmoothedTemplate(System.Int32)">
+            <summary>
+            Tạo Pitch Template khép kín hoàn hảo (Seam-Smoothed Ring) từ lịch sử âm thanh.
+            Ghép chu kỳ $T_1$ và $T_2$ kèm Overlap-Add ở 2 đầu để triệt tiêu mọi bước nhảy pha.
+            </summary>
+        </member>
+    </members>
+</doc>

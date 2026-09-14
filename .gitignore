@@ -17,11 +17,9 @@ audio_samples/
 *.tkva
 
 # Build Output & Temporary Binaries
-bin/
 obj/
 *.exe
 *.il
-*.pdb
 *.tmp
 
 # IDE & Editor files
