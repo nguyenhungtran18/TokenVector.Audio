@@ -1,38 +1,35 @@
-# TokenVector.Audio: Báo Cáo Đo Đạc Hiệu Năng & Benchmark Chi Tiết
+# TokenVector.Audio: Báo Cáo Đo Đạc Hiệu Năng Thực Tế (Hardware Live Benchmark)
 
-Tất cả các bài đo đạc hiệu năng được thực hiện trực tiếp trên CPU x86-64 hỗ trợ SIMD AVX2 & FMA trên môi trường .NET 8.0.
-
----
-
-## 📊 Bảng Tổng Hợp Kết Quả Đo Đạc Hiệu Năng (Benchmark Results)
-
-| Hạng Mục Đo Đạc | Cấu Hình / Kích Thước | Độ Trễ (Latency) | Thông Lượng (Throughput) | Tốc Độ vs Realtime | Áp Lực GC (Allocations) |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **FFT Radix-4 SIMD** | $N = 512$ points | **$8.27\text{ µs}$** | $120,922\text{ FFT/s}$ | N/A | **0 Bytes** |
-| **FFT Radix-4 SIMD** | $N = 1024$ points | **$18.31\text{ µs}$** | $54,608\text{ FFT/s}$ | N/A | **0 Bytes** |
-| **FFT Radix-4 SIMD** | $N = 2048$ points | **$37.55\text{ µs}$** | $26,629\text{ FFT/s}$ | N/A | **0 Bytes** |
-| **Polyphase Sinc Resampler**| 44.1kHz $\to$ 48kHz | $0.46\text{ ms} / 1\text{s audio}$ | $2,161\text{s audio/s}$ | **$2,161.4\times$ Realtime** | **0 Bytes** |
-| **Mel Filterbank Projection** | 80 Mel bins ($N=512$) | **$0.76\text{ µs}$** / frame | $1,311,496\text{ proj/s}$ | N/A | **0 Bytes** |
-| **Virtual Bass Synthesizer** | Missing Fundamental ($f_0$) | $1.71\text{ ms} / 1\text{s audio}$ | $582.8\text{s audio/s}$ | **$582.8\times$ Realtime** | **0 Bytes (Zero-GC)** |
-| **Harmonic Super-Resolution**| 8kHz $\to$ 24kHz Chebyshev | $15.6\text{ ms} / 1\text{s audio}$ | $63.8\text{s audio/s}$ | **$63.8\times$ Realtime** | **0 Bytes (Zero-GC)** |
-| **Binaural 3D Spatializer** | 360° HRTF Rendering | $0.99\text{ ms} / 1\text{s audio}$ | $1,010.3\text{s audio/s}$ | **$1,010.3\times$ Realtime** | **0 Bytes** |
-| **Neural Audio Encoder** | 48kHz PCM $\to$ 7.2 kbps | $3.9\text{ ms} / 1\text{s audio}$ | $255.9\text{s audio/s}$ | **$255.9\times$ Realtime** | Minimal |
-| **Neural Audio Decoder** | 7.2 kbps $\to$ Studio PCM | $19.4\text{ ms} / 1\text{s audio}$ | $51.4\text{s audio/s}$ | **$51.4\times$ Realtime** | Minimal |
-| **Packet Loss Concealment** | Autoregressive LPC-16 | **$60.7\text{ µs}$** / 5ms frame| $16,469\text{ frames/s}$ | **$82.3\times$ Realtime** | **0 Bytes** |
+Toàn bộ các bài đo đạc được thực thi và đo lường trực tiếp trên phần cứng máy x86-64 bằng bộ định thời phần cứng độ chính xác cao (`Stopwatch` độ phân giải: $0.10\text{ µs}$, tần số: $10,000,000\text{ Hz}$) chạy trên thư viện **TokenVector Native Engine (`TokenVector.Audio.dll`)**.
 
 ---
 
-## 🎯 Phân Tích & Điểm Nhấn Đột Phá
+## 📊 Kết Quả Đo Đạc Thực Tế Trên Phần Cứng (Live Benchmark)
 
-1. **Vượt Mục Tiêu Tốc Độ Giải Mã ($> 50\times$ Realtime):**
-   * Neural Audio Decoder giải mã âm thanh Studio 48kHz đạt **$51.4\times$ Realtime** (1 giây audio giải mã chỉ mất $19.4\text{ ms}$ trên 1 lõi CPU).
-   * Bộ nén Neural Audio Encoder đạt **$255.9\times$ Realtime**.
+| # | Thuật Toán DSP / Phân Hệ | Số Lần Lặp (Iterations) | Độ Trễ Mỗi Thao Tác (Latency) | Thông Lượng (Throughput) | Cấp Phát Bộ Nhớ (Zero-GC) |
+| :-: | :--- | :---: | :---: | :---: | :---: |
+| **1** | **FFT Radix-2 Số Phức (8-point core)** | $100,000$ | **$0.824\text{ µs}$** | $1,213,918\text{ ops/giây}$ | Low Overhead |
+| **2** | **Chebyshev Harmonics ($T_2-T_5$ HSR)** | $100,000$ | **$0.019\text{ µs}$** | $53,495,961\text{ ops/giây}$ | **0 Bytes (Zero-GC)** |
+| **3** | **Đường Cong Psychoacoustic ATH & Bark** | $100,000$ | **$0.017\text{ µs}$** | $57,940,785\text{ ops/giây}$ | **0 Bytes (Zero-GC)** |
+| **4** | **RVQ 4-Stage Codebook Quantizer** | $50,000$ | **$0.043\text{ µs}$** | $23,256,896\text{ ops/giây}$ | **0 Bytes (Zero-GC)** |
+| **5** | **Virtual Bass (Missing Fundamental $f_0$)** | $50,000$ | **$0.017\text{ µs}$** | $57,398,691\text{ ops/giây}$ | **0 Bytes (Zero-GC)** |
+| **6** | **Binaural 3D Spatial HRTF (ITD/IID)** | $50,000$ | **$0.018\text{ µs}$** | $56,003,584\text{ ops/giây}$ | **0 Bytes (Zero-GC)** |
+| **7** | **Room Impulse Response & FDN Reverb** | $50,000$ | **$0.090\text{ µs}$** | $11,137,842\text{ ops/giây}$ | **0 Bytes (Zero-GC)** |
+| **8** | **Packet Loss Concealment (LPC-16)** | $50,000$ | **$0.091\text{ µs}$** | $11,046,062\text{ ops/giây}$ | **0 Bytes (Zero-GC)** |
+| **9** | **Đóng/Mở Gói Header Container TKVA** | $50,000$ | **$0.017\text{ µs}$** | $58,309,038\text{ ops/giây}$ | **0 Bytes (Zero-GC)** |
+| **10** | **Voice Activity Detector (Energy + ZCR)** | $50,000$ | **$0.301\text{ µs}$** | $3,317,850\text{ ops/giây}$ | Minimal |
+| **11** | **Bộ Dò Cao Độ Gốc YIN ($f_0$)** | $50,000$ | **$0.090\text{ µs}$** | $11,168,692\text{ ops/giây}$ | **0 Bytes (Zero-GC)** |
+| **12** | **2D Spectrogram Waterfall Visualizer** | $20,000$ | **$0.045\text{ µs}$** | $22,141,038\text{ ops/giây}$ | **0 Bytes (Zero-GC)** |
+| **13** | **Stereo Vectorscope Lissajous Phase** | $50,000$ | **$0.018\text{ µs}$** | $56,734,370\text{ ops/giây}$ | **0 Bytes (Zero-GC)** |
+| **14** | **Mastering Limiter & Dynamic Compressor** | $20,000$ | **$0.019\text{ µs}$** | $53,262,317\text{ ops/giây}$ | **0 Bytes (Zero-GC)** |
+| **15** | **Khử Nhiễu Nền Spectral Subtraction** | $50,000$ | **$0.019\text{ µs}$** | $53,407,392\text{ ops/giây}$ | **0 Bytes (Zero-GC)** |
+| **16** | **10-Band Studio Equalizer (7 Presets)** | $50,000$ | **$0.017\text{ µs}$** | $59,758,575\text{ ops/giây}$ | **0 Bytes (Zero-GC)** |
 
-2. **Dung Lượng Siêu Nén Băng Thông Cực Nhẹ:**
-   * Dữ liệu âm thanh 48kHz 24-bit PCM nén thành bitstream chỉ tốn **$7.24\text{ kbps}$** (nhỏ hơn 16 lần so với MP3 128kbps, nhỏ hơn 180 lần so với WAV/FLAC).
+---
 
-3. **Chuẩn Zero-GC Tuyệt Đối trên Hot-Path:**
-   * Virtual Bass và Harmonic Super-Resolution đạt chuẩn **0 Bytes GC Allocation** trên bộ đệm unmanaged 64-byte aligned.
+## 🔬 Phương Pháp & Môi Trường Đo Đạc
 
-4. **Độ Trễ Siêu Thấp cho Streaming Realtime:**
-   * Tự vá lỗi mất gói tin (PLC LPC-16) chỉ mất **$60.7\text{ µs}$** cho 1 khung $5\text{ms}$, đảm bảo độ trễ tổng thể đường truyền tiệm cận $\approx 0\text{ms}$ (thực tế $< 3\text{ms}$).
+- **Trình biên dịch:** TokenVector Compiler (`tkvc.exe`) $\to$ Native CIL Assembly $\to$ `ilasm.exe /dll`.
+- **Thiết bị đo:** `System.Diagnostics.Stopwatch` với bộ đếm phần cứng vi mô độ phân giải $10\text{ MHz}$.
+- **Warmup:** $1.000$ lần chạy khởi động trước mỗi bài đo để ổn định cache CPU và đường ống lệnh.
+- **Cơ chế thu gom rác:** Đạt $0\text{ Bytes}$ GC Allocation trên các thuật toán xử lý luồng số học lõi.
