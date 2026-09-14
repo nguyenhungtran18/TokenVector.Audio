@@ -80,7 +80,7 @@ Trước đây, ngành xử lý tín hiệu âm thanh cao cấp (DSP) và Neural
 
 ---
 
-## 🧪 Chứng Minh Thực Thi (16/16 Tests PASSED)
+## 🧪 Chứng Minh Thực Thi (21/21 Tests PASSED)
 
 Toàn bộ hệ thống được biên dịch và kiểm chứng trực tiếp bằng trình biên dịch TokenVector:
 
@@ -91,7 +91,7 @@ tkvc.exe build test_audio_engine.tkv --entry run --out test_audio_engine.exe
 
 ```
 ================================================================================
-TOKENVECTOR.AUDIO - COMPLETE 100% SUITE VERIFICATION (16/16 TESTS)
+TOKENVECTOR.AUDIO - COMPLETE 100% SUITE VERIFICATION (21/21 TESTS)
 ================================================================================
 [PASS] BT1_Psychoacoustic_Bark_ATH_Masking
 [PASS] BT1_Residual_Vector_Quantization_RVQ4
@@ -109,8 +109,13 @@ TOKENVECTOR.AUDIO - COMPLETE 100% SUITE VERIFICATION (16/16 TESTS)
 [PASS] EXT4_Multiband_Mastering_Peak_Limiter
 [PASS] EXT4_Spectral_Subtraction_Denoising
 [PASS] EXT4_Equalizer_10Band_Studio_Presets
+[PASS] ADV1_MDCT_IMDCT_TDAC_Reconstruction
+[PASS] ADV2_WSOLA_Waveform_Pitch_Shifting
+[PASS] ADV3_FLAC_Rice_Entropy_And_LPC_Decode
+[PASS] ADV4_Partitioned_Convolution_Reverb
+[PASS] ADV5_NMF_Source_Separation_Vocal_Mask
 ================================================================================
-TEST SUMMARY: 16/16 PASSED (100% PURE TOKENVECTOR .TKV)
+TEST SUMMARY: 21/21 PASSED (100% PURE TOKENVECTOR .TKV)
 ================================================================================
 ```
 

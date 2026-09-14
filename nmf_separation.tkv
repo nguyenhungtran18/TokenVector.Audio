@@ -1,0 +1,114 @@
+# -*- coding: utf-8 -*-
+# ====================================================================================================
+# TokenVector.Audio - NMF Audio Source Separation (nmf_separation.tkv)
+# 100% Pure TokenVector Language (.tkv) - Zero External Dependencies
+# Implements Non-negative Matrix Factorization (V ~ W * H) for Vocal & Music Separation
+# ====================================================================================================
+
+class NmfSourceSeparator:
+    n_bins: "i32"
+    n_frames: "i32"
+    n_components: "i32"
+    eps: "f64"
+
+    def __init__(self, n_bins: "i32", n_frames: "i32", n_components: "i32"):
+        self.n_bins = n_bins
+        self.n_frames = n_frames
+        self.n_components = n_components
+        self.eps = 0.000000001
+
+    def factorize(self, magnitude_spectrogram: "list", max_iterations: "i32") -> "list":
+        # Multiplicative Update Rules for Frobenius/KL-Divergence NMF:
+        # V is matrix of size (n_bins x n_frames)
+        # W is basis matrix (n_bins x n_components)
+        # H is activation matrix (n_components x n_frames)
+        # Goal: minimize ||V - W * H||
+        
+        # 1. Initialize W and H with non-negative deterministic pattern
+        w_mat = []
+        f = 0
+        while f < self.n_bins:
+            row = []
+            k = 0
+            while k < self.n_components:
+                val = 0.5 + 0.5 * sin(float(f + 1) * float(k + 1) * 0.1)
+                if val < 0.01:
+                    val = 0.01
+                row.append(val)
+                k = k + 1
+            w_mat.append(row)
+            f = f + 1
+
+        h_mat = []
+        k = 0
+        while k < self.n_components:
+            row = []
+            t = 0
+            while t < self.n_frames:
+                val = 0.5 + 0.5 * cos(float(k + 1) * float(t + 1) * 0.1)
+                if val < 0.01:
+                    val = 0.01
+                row.append(val)
+                t = t + 1
+            h_mat.append(row)
+            k = k + 1
+
+        # 2. Multiplicative updates
+        it = 0
+        while it < max_iterations:
+            # Reconstruct V_hat = W * H
+            # Update H: H = H * (W^T * V) / (W^T * W * H + eps)
+            k = 0
+            while k < self.n_components:
+                t = 0
+                while t < self.n_frames:
+                    num = 0.0
+                    denom = 0.0
+                    f = 0
+                    while f < self.n_bins:
+                        v_val = magnitude_spectrogram[f * self.n_frames + t]
+                        # Compute V_hat[f, t]
+                        v_hat = 0.0
+                        c = 0
+                        while c < self.n_components:
+                            v_hat = v_hat + w_mat[f][c] * h_mat[c][t]
+                            c = c + 1
+                        if v_hat < self.eps:
+                            v_hat = self.eps
+                        
+                        num = num + w_mat[f][k] * v_val
+                        denom = denom + w_mat[f][k] * v_hat
+                        f = f + 1
+                    
+                    if denom > self.eps:
+                        h_mat[k][t] = h_mat[k][t] * (num / denom)
+                    t = t + 1
+                k = k + 1
+            it = it + 1
+
+        # Return reconstructed Vocal (Components 0..K/2) and Accompaniment (Components K/2..K)
+        vocal_mask = []
+        half_k = self.n_components // 2
+        f = 0
+        while f < self.n_bins:
+            t = 0
+            while t < self.n_frames:
+                vocal_energy = 0.0
+                total_energy = 0.0
+                k = 0
+                while k < self.n_components:
+                    energy = w_mat[f][k] * h_mat[k][t]
+                    if k < half_k:
+                        vocal_energy = vocal_energy + energy
+                    total_energy = total_energy + energy
+                    k = k + 1
+                
+                if total_energy > self.eps:
+                    mask = vocal_energy / total_energy
+                else:
+                    mask = 0.5
+                vocal_mask.append(mask)
+                t = t + 1
+            f = f + 1
+
+        return vocal_mask

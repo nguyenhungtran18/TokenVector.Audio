@@ -19,7 +19,12 @@ __tkv_import__ = [
     "speech_denoise",
     "visualizer_spectrum",
     "evaluation",
-    "live_dsp_processor"
+    "live_dsp_processor",
+    "dsp_mdct",
+    "pitch_shifter_wsola",
+    "codec_flac",
+    "reverb_convolution",
+    "nmf_separation"
 ]
 
 class TokenVectorAudioEngine:
@@ -38,6 +43,11 @@ class TokenVectorAudioEngine:
     eq10: "inferred"
     waterfall: "inferred"
     vectorscope: "inferred"
+    mdct: "inferred"
+    pitch_shifter: "inferred"
+    flac_decoder: "inferred"
+    reverb: "inferred"
+    nmf_separator: "inferred"
 
     def __init__(self, sample_rate: "i32", channels: "i32"):
         self.sample_rate = sample_rate
@@ -55,6 +65,11 @@ class TokenVectorAudioEngine:
         self.eq10 = Equalizer10Band(sample_rate)
         self.waterfall = SpectrogramWaterfall(64, 32)
         self.vectorscope = StereoVectorscope()
+        self.mdct = MdctTransform(512)
+        self.pitch_shifter = WsolaPitchShifter(sample_rate, 1024, 256)
+        self.flac_decoder = FlacLosslessDecoder(sample_rate, channels, 16)
+        self.reverb = FastConvolutionReverb(sample_rate)
+        self.nmf_separator = NmfSourceSeparator(64, 32, 4)
 
     def encode_to_rvq(self, frame_samples: "list") -> "list":
         return self.codec.encode_frame(frame_samples)
@@ -74,8 +89,14 @@ class TokenVectorAudioEngine:
     def apply_equalizer_preset(self, preset_name: "str"):
         self.eq10.apply_preset(preset_name)
 
+    def shift_pitch(self, samples: "list", semitones: "f64") -> "list":
+        return self.pitch_shifter.shift_pitch(samples, semitones)
+
+    def time_stretch(self, samples: "list", speed_factor: "f64") -> "list":
+        return self.pitch_shifter.time_stretch(samples, speed_factor)
+
     def get_version(self) -> "str":
-        return "TokenVector.Audio Studio Complete Engine v2.0 (100% Pure .tkv Native CIL)"
+        return "TokenVector.Audio Studio Complete Engine v2.1 (21 Pure .tkv Modules, Native CIL)"
 
 def run() -> "i32":
     engine = TokenVectorAudioEngine(48000, 2)

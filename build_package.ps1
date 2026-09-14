@@ -10,7 +10,10 @@ Write-Host "BUILDING TOKENVECTOR.AUDIO DLL & NUPKG PACKAGE" -ForegroundColor Cya
 Write-Host "==================================================================" -ForegroundColor Cyan
 
 # 1. Locate tkvc compiler dynamically
-$compiler = (Get-Command tkvc -ErrorAction SilentlyContinue)?.Source
+$compiler = $null
+$tkvCmd = Get-Command tkvc -ErrorAction SilentlyContinue
+if ($tkvCmd) { $compiler = $tkvCmd.Source }
+
 if (-not $compiler -or -not (Test-Path $compiler)) {
     $candidates = @(
         "tkvc.exe",
@@ -39,7 +42,10 @@ if (-not (Test-Path "TokenVector.Audio.il")) {
 }
 
 # 2. Locate ilasm.exe dynamically
-$ilasm = (Get-Command ilasm -ErrorAction SilentlyContinue)?.Source
+$ilasm = $null
+$ilasmCmd = Get-Command ilasm -ErrorAction SilentlyContinue
+if ($ilasmCmd) { $ilasm = $ilasmCmd.Source }
+
 if (-not $ilasm -or -not (Test-Path $ilasm)) {
     $ilasmCandidates = @(
         "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\ilasm.exe",
@@ -63,7 +69,9 @@ if (-not (Test-Path "bin\Release\net8.0")) { New-Item -ItemType Directory -Path 
 & $ilasm "TokenVector.Audio.il" /dll /output:"bin\Release\net8.0\TokenVector.Audio.dll" | Out-Null
 
 # 3. Package into NuGet Package (.nupkg) including README.md & LICENSE
-Write-Host "[3/3] Packaging into TokenVector.Audio.1.0.0.nupkg (with README.md and LICENSE)..." -ForegroundColor Yellow
+$nuspecXml = [xml](Get-Content "TokenVector.Audio.nuspec")
+$pkgVersion = $nuspecXml.package.metadata.version
+Write-Host "[3/3] Packaging into TokenVector.Audio.$pkgVersion.nupkg (with README.md and LICENSE)..." -ForegroundColor Yellow
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
@@ -109,12 +117,12 @@ $coreProps = @"
   <dc:description>TokenVector.Audio - Industrial-Grade DSP &amp; Neural Audio Engine</dc:description>
   <dc:identifier>TokenVector.Audio</dc:identifier>
   <dc:title>TokenVector.Audio</dc:title>
-  <version>1.0.0</version>
+  <version>$pkgVersion</version>
 </coreProperties>
 "@
 [System.IO.File]::WriteAllText("$pkgDir\package\services\metadata\core-properties\core.psmdcp", $coreProps)
 
-$targetNupkg = (Join-Path (Get-Location) "bin\Release\TokenVector.Audio.1.0.0.nupkg")
+$targetNupkg = (Join-Path (Get-Location) "bin\Release\TokenVector.Audio.$pkgVersion.nupkg")
 if (Test-Path $targetNupkg) { Remove-Item $targetNupkg -Force }
 [System.IO.Compression.ZipFile]::CreateFromDirectory($pkgDir, $targetNupkg)
 
@@ -123,5 +131,6 @@ Remove-Item -Path $pkgDir -Recurse -Force
 Write-Host "==================================================================" -ForegroundColor Green
 Write-Host "PACKAGING COMPLETED SUCCESSFULLY!" -ForegroundColor Green
 Write-Host "  DLL:   bin\Release\TokenVector.Audio.dll" -ForegroundColor Green
-Write-Host "  NUPKG: bin\Release\TokenVector.Audio.1.0.0.nupkg" -ForegroundColor Green
+Write-Host "  NUPKG: bin\Release\TokenVector.Audio.$pkgVersion.nupkg" -ForegroundColor Green
 Write-Host "==================================================================" -ForegroundColor Green
+

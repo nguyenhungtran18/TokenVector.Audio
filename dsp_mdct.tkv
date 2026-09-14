@@ -1,0 +1,65 @@
+# -*- coding: utf-8 -*-
+# ====================================================================================================
+# TokenVector.Audio - Modified Discrete Cosine Transform (MDCT/IMDCT) (dsp_mdct.tkv)
+# 100% Pure TokenVector Language (.tkv) - Zero External Dependencies
+# Implements 50% Overlap-Add Time-Domain Aliasing Cancellation (TDAC) & Vorbis/Sine Windowing
+# ====================================================================================================
+
+class MdctTransform:
+    n: "i32"
+    half_n: "i32"
+    window: "list"
+    pi: "f64"
+
+    def __init__(self, n: "i32"):
+        self.n = n
+        self.half_n = n // 2
+        self.pi = 3.141592653589793
+        self.window = []
+        # Generate Sine/Vorbis Window with TDAC property
+        i = 0
+        while i < self.n:
+            w = sin(self.pi / float(self.n) * (float(i) + 0.5))
+            self.window.append(w)
+            i = i + 1
+
+    def forward(self, input_2n: "list") -> "list":
+        # Forward MDCT: maps 2N samples to N spectral coefficients
+        # X[k] = sum_{n=0}^{2N-1} x[n] * w[n] * cos( pi/N * (n + 0.5 + N/2) * (k + 0.5) )
+        n2 = self.n
+        n_out = self.half_n
+        output = []
+        
+        k = 0
+        while k < n_out:
+            sum_val = 0.0
+            n_idx = 0
+            while n_idx < n2:
+                sample_w = input_2n[n_idx] * self.window[n_idx]
+                angle = (self.pi / float(n_out)) * (float(n_idx) + 0.5 + float(n_out) * 0.5) * (float(k) + 0.5)
+                sum_val = sum_val + sample_w * cos(angle)
+                n_idx = n_idx + 1
+            output.append(sum_val)
+            k = k + 1
+        return output
+
+    def inverse(self, spectral_n: "list") -> "list":
+        # Inverse IMDCT: maps N spectral coefficients back to 2N time samples
+        # y[n] = (2/N) * sum_{k=0}^{N-1} X[k] * cos( pi/N * (n + 0.5 + N/2) * (k + 0.5) ) * w[n]
+        n2 = self.n
+        n_spec = self.half_n
+        scale = 2.0 / float(n_spec)
+        output = []
+
+        n_idx = 0
+        while n_idx < n2:
+            sum_val = 0.0
+            k = 0
+            while k < n_spec:
+                angle = (self.pi / float(n_spec)) * (float(n_idx) + 0.5 + float(n_spec) * 0.5) * (float(k) + 0.5)
+                sum_val = sum_val + spectral_n[k] * cos(angle)
+                k = k + 1
+            sample = sum_val * scale * self.window[n_idx]
+            output.append(sample)
+            n_idx = n_idx + 1
+        return output

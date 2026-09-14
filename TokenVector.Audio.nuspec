@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
   <metadata>
     <id>TokenVector.Audio</id>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <title>TokenVector.Audio - Industrial-Grade DSP &amp; Neural Audio Engine</title>
     <authors>Tran Nguyen Hung</authors>
     <owners>Tran Nguyen Hung</owners>
@@ -12,8 +12,8 @@
     <projectUrl>https://github.com/nguyenhungtran18/TokenVector.Audio</projectUrl>
     <repository type="git" url="https://github.com/nguyenhungtran18/TokenVector.Audio" />
     <readme>README.md</readme>
-    <description>Ultra high-performance studio audio processing, neural audio codec (3-8 kbps RVQ), psychoacoustic ATH masking, harmonic super-resolution (Chebyshev T2-T5), virtual bass synthesis, 3D binaural HRTF spatializer, zero-latency streaming transport with LPC-16 packet loss concealment, and 10-band equalizer developed natively in TokenVector.</description>
-    <tags>audio dsp neural-codec psychoacoustics virtual-bass super-resolution spatial-audio hrtf fft lpc16 tokenvector</tags>
+    <description>Ultra high-performance studio audio processing, neural audio codec (3-8 kbps RVQ), psychoacoustic ATH masking, harmonic super-resolution (Chebyshev T2-T5), virtual bass synthesis, 3D binaural HRTF spatializer, zero-latency streaming transport with LPC-16 packet loss concealment, 10-band equalizer, MDCT/IMDCT with TDAC, WSOLA pitch shifter &amp; time stretcher, FLAC lossless decoder, fast convolution reverb, and NMF vocal/accompaniment source separation developed 100% natively in TokenVector.</description>
+    <tags>audio dsp neural-codec psychoacoustics virtual-bass super-resolution spatial-audio hrtf fft lpc16 mdct wsola pitch-shift flac-decoder convolution-reverb nmf-separation tokenvector</tags>
     <dependencies>
       <group targetFramework=".NETFramework4.8" />
       <group targetFramework="net8.0" />

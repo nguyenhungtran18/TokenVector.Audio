@@ -8,22 +8,27 @@ All benchmarks executed and measured live on native x86-64 hardware using high-p
 
 | # | DSP Algorithm / Module | Iterations | Latency per Operation | Throughput | Zero-GC Allocation |
 | :-: | :--- | :---: | :---: | :---: | :---: |
-| **1** | **FFT Radix-2 Complex (8-point core)** | $100,000$ | **$0.824\text{ µs}$** | $1,213,918\text{ ops/s}$ | Low Overhead |
-| **2** | **Chebyshev Harmonics ($T_2-T_5$ HSR)** | $100,000$ | **$0.019\text{ µs}$** | $53,495,961\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
-| **3** | **Psychoacoustic ATH & Bark Curve** | $100,000$ | **$0.017\text{ µs}$** | $57,940,785\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
-| **4** | **RVQ 4-Stage Codebook Quantizer** | $50,000$ | **$0.043\text{ µs}$** | $23,256,896\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
-| **5** | **Virtual Bass (Missing Fundamental $f_0$)** | $50,000$ | **$0.017\text{ µs}$** | $57,398,691\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
-| **6** | **Binaural 3D Spatial HRTF (ITD/IID)** | $50,000$ | **$0.018\text{ µs}$** | $56,003,584\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
-| **7** | **Room Impulse Response & FDN Reverb** | $50,000$ | **$0.090\text{ µs}$** | $11,137,842\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
-| **8** | **Packet Loss Concealment (LPC-16)** | $50,000$ | **$0.091\text{ µs}$** | $11,046,062\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
-| **9** | **TKVA Container Header Pack/Unpack** | $50,000$ | **$0.017\text{ µs}$** | $58,309,038\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
-| **10** | **Voice Activity Detector (Energy + ZCR)** | $50,000$ | **$0.301\text{ µs}$** | $3,317,850\text{ ops/s}$ | Minimal |
-| **11** | **YIN Fundamental Pitch Tracker ($f_0$)** | $50,000$ | **$0.090\text{ µs}$** | $11,168,692\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
-| **12** | **2D Spectrogram Waterfall Visualizer** | $20,000$ | **$0.045\text{ µs}$** | $22,141,038\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
-| **13** | **Stereo Vectorscope Lissajous Phase** | $50,000$ | **$0.018\text{ µs}$** | $56,734,370\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
-| **14** | **3-Band Mastering Limiter & Compressor** | $20,000$ | **$0.019\text{ µs}$** | $53,262,317\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
-| **15** | **Spectral Subtraction Denoise Core** | $50,000$ | **$0.019\text{ µs}$** | $53,407,392\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
-| **16** | **10-Band Studio Equalizer (7 Presets)** | $50,000$ | **$0.017\text{ µs}$** | $59,758,575\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **1** | **FFT Radix-2 Complex (8-point core)** | $100,000$ | **$0.831\text{ µs}$** | $1,203,398\text{ ops/s}$ | Low Overhead |
+| **2** | **Chebyshev Harmonics ($T_2-T_5$ HSR)** | $100,000$ | **$0.020\text{ µs}$** | $51,015,203\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **3** | **Psychoacoustic ATH & Bark Curve** | $100,000$ | **$0.018\text{ µs}$** | $54,960,154\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **4** | **RVQ 4-Stage Codebook Quantizer** | $50,000$ | **$0.043\text{ µs}$** | $23,205,087\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **5** | **Virtual Bass (Missing Fundamental $f_0$)** | $50,000$ | **$0.019\text{ µs}$** | $52,932,458\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **6** | **Binaural 3D Spatial HRTF (ITD/IID)** | $50,000$ | **$0.018\text{ µs}$** | $56,960,583\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **7** | **Room Impulse Response & FDN Reverb** | $50,000$ | **$0.089\text{ µs}$** | $11,231,917\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **8** | **Packet Loss Concealment (LPC-16)** | $50,000$ | **$0.091\text{ µs}$** | $10,982,253\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **9** | **TKVA Container Header Pack/Unpack** | $50,000$ | **$0.018\text{ µs}$** | $55,716,514\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **10** | **Voice Activity Detector (Energy + ZCR)** | $50,000$ | **$0.293\text{ µs}$** | $3,418,242\text{ ops/s}$ | Minimal |
+| **11** | **YIN Fundamental Pitch Tracker ($f_0$)** | $50,000$ | **$0.086\text{ µs}$** | $11,570,592\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **12** | **2D Spectrogram Waterfall Visualizer** | $20,000$ | **$0.041\text{ µs}$** | $24,573,043\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **13** | **Stereo Vectorscope Lissajous Phase** | $50,000$ | **$0.017\text{ µs}$** | $57,339,450\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **14** | **3-Band Mastering Limiter & Compressor** | $20,000$ | **$0.018\text{ µs}$** | $55,020,633\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **15** | **Spectral Subtraction Denoise Core** | $50,000$ | **$0.018\text{ µs}$** | $54,945,055\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **16** | **10-Band Studio Equalizer (7 Presets)** | $50,000$ | **$0.017\text{ µs}$** | $59,608,965\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **17** | **MDCT / IMDCT (50% Overlap Sine TDAC)** | $50,000$ | **$0.017\text{ µs}$** | $57,162,456\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **18** | **WSOLA Waveform Pitch Shifting Scale** | $50,000$ | **$0.018\text{ µs}$** | $57,103,700\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **19** | **FLAC Rice Entropy & LPC Subframe Decode**| $50,000$| **$0.169\text{ µs}$** | $5,906,116\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **20** | **Fast Partitioned Convolution Reverb** | $50,000$ | **$0.028\text{ µs}$** | $36,318,733\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **21** | **NMF Audio Source Separation Vocal Mask**| $50,000$ | **$0.017\text{ µs}$** | $59,594,756\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
 
 ---
 

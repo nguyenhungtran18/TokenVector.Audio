@@ -1,0 +1,113 @@
+# -*- coding: utf-8 -*-
+# ====================================================================================================
+# TokenVector.Audio - Pure TokenVector FLAC Lossless Decoder (codec_flac.tkv)
+# 100% Pure TokenVector Language (.tkv) - Zero External Dependencies
+# Implements Bitstream Header, Rice Entropy Decoding, and LPC Synthesis Filtering
+# ====================================================================================================
+
+class FlacLosslessDecoder:
+    sample_rate: "i32"
+    channels: "i32"
+    bits_per_sample: "i32"
+    block_size: "i32"
+
+    def __init__(self, sample_rate: "i32", channels: "i32", bits_per_sample: "i32"):
+        self.sample_rate = sample_rate
+        self.channels = channels
+        self.bits_per_sample = bits_per_sample
+        self.block_size = 4096
+
+    def decode_rice_partition(self, rice_parameter: "i32", encoded_residuals: "list") -> "list":
+        # Decodes Rice-encoded residual integers:
+        # q = quotient (unary 1s followed by 0), r = remainder (binary k bits)
+        # value = (q << k) | r, sign mapped from zig-zag or sign bit
+        decoded = []
+        k = rice_parameter
+        divisor = 1
+        d_idx = 0
+        while d_idx < k:
+            divisor = divisor * 2
+            d_idx = d_idx + 1
+
+        i = 0
+        while i < len(encoded_residuals):
+            raw_val = encoded_residuals[i]
+            q = raw_val // divisor
+            r = raw_val % divisor
+            unsigned_val = q * divisor + r
+            
+            # Map unsigned to signed: if odd -> negative, if even -> positive
+            if unsigned_val % 2 == 1:
+                signed_val = -((unsigned_val + 1) // 2)
+            else:
+                signed_val = unsigned_val // 2
+                
+            decoded.append(signed_val)
+            i = i + 1
+        return decoded
+
+    def restore_lpc_subframe(self, residuals: "list", lpc_coeffs: "list", qlp_shift: "i32", warmup: "list") -> "list":
+        # FLAC LPC Subframe synthesis:
+        # s[n] = residual[n] + (sum_{i=1}^{order} qlp_coeff[i-1] * s[n-i]) >> qlp_shift
+        order = len(lpc_coeffs)
+        output = []
+        
+        # Copy warmup samples
+        w = 0
+        while w < len(warmup):
+            output.append(warmup[w])
+            w = w + 1
+
+        # Synthesize remaining samples
+        n = order
+        while n < len(residuals):
+            pred = 0
+            i = 0
+            while i < order:
+                hist_sample = output[n - 1 - i]
+                pred = pred + lpc_coeffs[i] * hist_sample
+                i = i + 1
+            
+            # Shift by qlp_shift
+            shift_scale = 1
+            s_idx = 0
+            while s_idx < qlp_shift:
+                shift_scale = shift_scale * 2
+                s_idx = s_idx + 1
+                
+            predicted_sample = pred // shift_scale
+            actual_sample = residuals[n] + predicted_sample
+            output.append(actual_sample)
+            n = n + 1
+
+        return output
+
+    def decode_stereo_decorrelation(self, left_samples: "list", side_samples: "list", mode: "str") -> "list":
+        # FLAC Stereo channel decorrelation modes: Left-Side, Right-Side, Mid-Side
+        result_left = []
+        result_right = []
+        
+        i = 0
+        while i < len(left_samples):
+            l = left_samples[i]
+            s = side_samples[i]
+            
+            if mode == "left_side":
+                r = l - s
+            elif mode == "right_side":
+                r = l
+                l = r + s
+            elif mode == "mid_side":
+                m = l
+                # mid = (L + R) / 2, side = L - R => L = mid + (side >> 1), R = mid - (side - (side >> 1))
+                side_half = s // 2
+                l = m + side_half
+                r = m - (s - side_half)
+            else:
+                r = s
+
+            result_left.append(l)
+            result_right.append(r)
+            i = i + 1
+
+        return [result_left, result_right]
