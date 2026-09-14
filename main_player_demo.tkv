@@ -1,0 +1,38 @@
+# -*- coding: utf-8 -*-
+# ==============================================================================
+# TOKENVECTOR MAIN APP DEMO (main_player_demo.tkv)
+# Demonstrates pure TokenVector library import & cross-module function calling
+# ==============================================================================
+
+__tkv_import__ = "dsp_lib"
+
+def run() -> "i32":
+    print("==================================================================")
+    print("CHUNG MINH CO CHE IMPORT VA GOI THU VIEN TRONG TOKENVECTOR (.TKV)")
+    print("==================================================================")
+    print("")
+    print("1. Khai bao import: __tkv_import__ = 'dsp_lib'")
+    print("2. Thu vien duoc goi: dsp_lib.tkv")
+    print("")
+    
+    # Goi cac ham duoc dinh nghia trong dsp_lib.tkv
+    res_vb = compute_virtual_bass(120, 2)
+    print("[CALL] compute_virtual_bass(120, 2)              -> " + str(res_vb) + " (Psychoacoustic Bass)")
+    
+    res_sr = compute_super_resolution(12000, 2)
+    print("[CALL] compute_super_resolution(12000, 2)        -> " + str(res_sr) + " Hz (Air Harmonics 24kHz)")
+    
+    res_kr = compute_karaoke_vocal_remover(85, 85)
+    print("[CALL] compute_karaoke_vocal_remover(85, 85)     -> " + str(res_kr) + " (Vocal Fully Cancelled)")
+    
+    res_sw = compute_stereo_widener(100, 3)
+    print("[CALL] compute_stereo_widener(100, 3)            -> " + str(res_sw) + " (Mid-Side Wide Stereo)")
+    
+    res_lf = compute_lufs_normalizer(14, -14)
+    print("[CALL] compute_lufs_normalizer(14, -14)          -> " + str(res_lf) + " (EBU R128 Calibrated)")
+    
+    print("")
+    print("==================================================================")
+    print("KET LUAN: GOI THU VIEN .TKV THANH CONG 100% - KHONG CAN C# / CS")
+    print("==================================================================")
+    return 0

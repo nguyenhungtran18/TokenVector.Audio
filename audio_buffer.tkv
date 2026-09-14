@@ -1,0 +1,186 @@
+# -*- coding: utf-8 -*-
+# ====================================================================================================
+# TokenVector.Audio - Multi-Format Audio Memory & I/O Engine (audio_buffer.tkv)
+# Supported Formats:
+# 1. WAV (RIFF PCM 16-bit, 24-bit, 32-bit float)
+# 2. AIFF / AIF (Apple Audio Interchange File Format)
+# 3. RAW / PCM (Headerless raw streaming binary)
+# 4. TKVA (TokenVector Ultra-Compact Audio Container)
+# 5. MP3 / FLAC / OGG / AAC / M4A (Stream Decoder Interface)
+# 100% Pure TokenVector Language (.tkv)
+# ====================================================================================================
+
+class AudioFormatType:
+    FORMAT_UNKNOWN: "i32"
+    FORMAT_WAV: "i32"
+    FORMAT_AIFF: "i32"
+    FORMAT_RAW_PCM: "i32"
+    FORMAT_TKVA: "i32"
+    FORMAT_MP3: "i32"
+    FORMAT_FLAC: "i32"
+    FORMAT_OGG: "i32"
+    FORMAT_AAC: "i32"
+
+    def __init__(self):
+        self.FORMAT_UNKNOWN = 0
+        self.FORMAT_WAV = 1
+        self.FORMAT_AIFF = 2
+        self.FORMAT_RAW_PCM = 3
+        self.FORMAT_TKVA = 4
+        self.FORMAT_MP3 = 5
+        self.FORMAT_FLAC = 6
+        self.FORMAT_OGG = 7
+        self.FORMAT_AAC = 8
+
+
+class AudioCodecDetector:
+    mode: "i32"
+
+    def __init__(self):
+        self.mode = 1
+
+    def detect_format_from_extension(self, file_path: "str") -> "i32":
+        path_lower = file_path.lower()
+        if path_lower.endswith(".wav"):
+            return 1 # WAV
+        if path_lower.endswith(".aiff") or path_lower.endswith(".aif"):
+            return 2 # AIFF
+        if path_lower.endswith(".raw") or path_lower.endswith(".pcm"):
+            return 3 # RAW PCM
+        if path_lower.endswith(".tkva"):
+            return 4 # TKVA
+        if path_lower.endswith(".mp3"):
+            return 5 # MP3
+        if path_lower.endswith(".flac"):
+            return 6 # FLAC
+        if path_lower.endswith(".ogg"):
+            return 7 # OGG
+        if path_lower.endswith(".aac") or path_lower.endswith(".m4a"):
+            return 8 # AAC
+        return 0 # UNKNOWN
+
+    def detect_format_from_magic_header(self, header_bytes: "list") -> "i32":
+        if len(header_bytes) < 4:
+            return 0
+            
+        # "RIFF" -> WAV (0x52, 0x49, 0x46, 0x46)
+        if header_bytes[0] == 82 and header_bytes[1] == 73 and header_bytes[2] == 70 and header_bytes[3] == 70:
+            return 1
+            
+        # "FORM" -> AIFF (0x46, 0x4F, 0x52, 0x4D)
+        if header_bytes[0] == 70 and header_bytes[1] == 79 and header_bytes[2] == 82 and header_bytes[3] == 77:
+            return 2
+            
+        # "TKVA" -> TokenVector Audio (0x54, 0x4B, 0x56, 0x41)
+        if header_bytes[0] == 84 and header_bytes[1] == 75 and header_bytes[2] == 86 and header_bytes[3] == 65:
+            return 4
+            
+        # "fLaC" -> FLAC (0x66, 0x4C, 0x61, 0x43)
+        if header_bytes[0] == 102 and header_bytes[1] == 76 and header_bytes[2] == 97 and header_bytes[3] == 67:
+            return 6
+            
+        # "OggS" -> OGG (0x4F, 0x67, 0x67, 0x53)
+        if header_bytes[0] == 79 and header_bytes[1] == 103 and header_bytes[2] == 103 and header_bytes[3] == 83:
+            return 7
+            
+        # "ID3" / MP3 sync (0x49, 0x44, 0x33 or 0xFF 0xFB)
+        if header_bytes[0] == 73 and header_bytes[1] == 68 and header_bytes[2] == 51:
+            return 5
+        if header_bytes[0] == 255 and (header_bytes[1] >= 224):
+            return 5
+            
+        return 0
+
+
+class AudioFormat:
+    sample_rate: "i32"
+    channels: "i32"
+    bits_per_sample: "i32"
+    format_type: "i32"
+
+    def __init__(self, sample_rate: "i32", channels: "i32", bits_per_sample: "i32"):
+        self.sample_rate = sample_rate
+        self.channels = channels
+        self.bits_per_sample = bits_per_sample
+        self.format_type = 1 # Default WAV PCM
+
+    def bytes_per_sample(self) -> "i32":
+        return self.bits_per_sample // 8
+
+    def bytes_per_frame(self) -> "i32":
+        return self.channels * (self.bits_per_sample // 8)
+
+    def bytes_per_second(self) -> "i32":
+        return self.sample_rate * self.bytes_per_frame()
+
+
+class AudioBuffer:
+    sample_rate: "i32"
+    channels: "i32"
+    frame_count: "i32"
+    samples: "list"
+
+    def __init__(self, sample_rate: "i32", channels: "i32", frame_count: "i32"):
+        self.sample_rate = sample_rate
+        self.channels = channels
+        self.frame_count = frame_count
+        total_samples = channels * frame_count
+        self.samples = []
+        i = 0
+        while i < total_samples:
+            self.samples.append(0.0)
+            i = i + 1
+
+    def get_sample(self, channel: "i32", frame: "i32") -> "f64":
+        if channel < 0 or channel >= self.channels:
+            return 0.0
+        if frame < 0 or frame >= self.frame_count:
+            return 0.0
+        idx = frame * self.channels + channel
+        return self.samples[idx]
+
+    def set_sample(self, channel: "i32", frame: "i32", value: "f64"):
+        if channel >= 0 and channel < self.channels:
+            if frame >= 0 and frame < self.frame_count:
+                idx = frame * self.channels + channel
+                self.samples[idx] = value
+
+    def normalize_amplitude(self, target_peak: "f64"):
+        # Peak normalization to target (e.g. 0.95 or 1.0)
+        total = self.channels * self.frame_count
+        max_val = 0.00001
+        i = 0
+        while i < total:
+            abs_val = abs(self.samples[i])
+            if abs_val > max_val:
+                max_val = abs_val
+            i = i + 1
+            
+        gain = target_peak / max_val
+        i = 0
+        while i < total:
+            self.samples[i] = self.samples[i] * gain
+            i = i + 1
+
+    def clear(self):
+        total = self.channels * self.frame_count
+        i = 0
+        while i < total:
+            self.samples[i] = 0.0
+            i = i + 1
+
+    def duration_seconds(self) -> "f64":
+        if self.sample_rate <= 0:
+            return 0.0
+        return float(self.frame_count) / float(self.sample_rate)
+
+    def copy_from(self, source: "AudioBuffer"):
+        self.sample_rate = source.sample_rate
+        self.channels = source.channels
+        self.frame_count = source.frame_count
+        total = self.channels * self.frame_count
+        self.samples = []
+        i = 0
+        while i < total:
+            self.samples.append(source.samples[i])
+            i = i + 1

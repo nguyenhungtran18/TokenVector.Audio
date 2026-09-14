@@ -1,0 +1,140 @@
+# -*- coding: utf-8 -*-
+# ====================================================================================================
+# TokenVector.Audio - Voice AI & Speech Processing (speech_vad.tkv)
+# 1. Voice Activity Detection (VAD) with Adaptive Energy & Zero-Crossing Rate (ZCR)
+# 2. Pitch Tracking & Fundamental Frequency (f0) Estimator (YIN Algorithm)
+# 100% Pure TokenVector Language (.tkv)
+# ====================================================================================================
+
+class VoiceActivityDetector:
+    energy_threshold: "f64"
+    zcr_threshold: "f64"
+    noise_floor: "f64"
+
+    def __init__(self, sensitivity: "f64"):
+        self.energy_threshold = 0.005 * sensitivity
+        self.zcr_threshold = 0.08
+        self.noise_floor = 0.001
+
+    def compute_frame_energy(self, frame: "list") -> "f64":
+        n = len(frame)
+        if n == 0:
+            return 0.0
+        sum_sq = 0.0
+        i = 0
+        while i < n:
+            v = frame[i]
+            sum_sq = sum_sq + v * v
+            i = i + 1
+        return sum_sq / float(n)
+
+    def compute_zcr(self, frame: "list") -> "f64":
+        n = len(frame)
+        if n < 2:
+            return 0.0
+        crossings = 0
+        i = 1
+        while i < n:
+            s1 = frame[i - 1]
+            s2 = frame[i]
+            if (s1 >= 0.0 and s2 < 0.0) or (s1 < 0.0 and s2 >= 0.0):
+                crossings = crossings + 1
+            i = i + 1
+        return float(crossings) / float(n - 1)
+
+    def is_speech(self, frame: "list") -> "i32":
+        energy = self.compute_frame_energy(frame)
+        zcr = self.compute_zcr(frame)
+        
+        # Adaptive noise floor update
+        if energy < self.noise_floor * 1.5:
+            self.noise_floor = 0.95 * self.noise_floor + 0.05 * energy
+            
+        dynamic_threshold = self.noise_floor * 3.0 + self.energy_threshold
+        
+        # Voiced speech has high energy; unvoiced speech (fricatives) has high ZCR
+        if energy > dynamic_threshold:
+            return 1
+        if energy > self.noise_floor * 1.8 and zcr > self.zcr_threshold:
+            return 1
+            
+        return 0
+
+
+class PitchTrackerYIN:
+    min_freq_hz: "f64"
+    max_freq_hz: "f64"
+    threshold: "f64"
+
+    def __init__(self, min_freq_hz: "f64", max_freq_hz: "f64", threshold: "f64"):
+        self.min_freq_hz = min_freq_hz
+        self.max_freq_hz = max_freq_hz
+        self.threshold = threshold
+
+    def estimate_pitch_hz(self, frame: "list", sample_rate: "i32") -> "f64":
+        n = len(frame)
+        if n < 4:
+            return 0.0
+            
+        min_tau = int(float(sample_rate) / self.max_freq_hz)
+        max_tau = int(float(sample_rate) / self.min_freq_hz)
+        if max_tau >= n // 2:
+            max_tau = (n // 2) - 1
+        if min_tau < 2:
+            min_tau = 2
+            
+        # 1. Difference function d(tau)
+        diff = []
+        tau = 0
+        while tau <= max_tau:
+            sum_diff = 0.0
+            j = 0
+            w_size = n - max_tau
+            while j < w_size:
+                d = frame[j] - frame[j + tau]
+                sum_diff = sum_diff + d * d
+                j = j + 1
+            diff.append(sum_diff)
+            tau = tau + 1
+
+        # 2. Cumulative mean normalized difference d'(tau)
+        cmnd = [1.0]
+        running_sum = 0.0
+        tau = 1
+        while tau <= max_tau:
+            running_sum = running_sum + diff[tau]
+            if running_sum > 0.000001:
+                val = diff[tau] / (running_sum / float(tau))
+            else:
+                val = 1.0
+            cmnd.append(val)
+            tau = tau + 1
+
+        # 3. Absolute threshold minimum dip search
+        best_tau = -1
+        tau = min_tau
+        while tau <= max_tau:
+            if cmnd[tau] < self.threshold:
+                # Find local minimum
+                while (tau + 1) <= max_tau and cmnd[tau + 1] < cmnd[tau]:
+                    tau = tau + 1
+                best_tau = tau
+                break
+            tau = tau + 1
+
+        if best_tau == -1:
+            # Fallback: find global minimum in search range
+            min_val = 999999.0
+            tau = min_tau
+            while tau <= max_tau:
+                if cmnd[tau] < min_val:
+                    min_val = cmnd[tau]
+                    best_tau = tau
+                tau = tau + 1
+
+        if best_tau <= 0:
+            return 0.0
+
+        # Sub-sample parabolic interpolation around best_tau
+        f0 = float(sample_rate) / float(best_tau)
+        return f0

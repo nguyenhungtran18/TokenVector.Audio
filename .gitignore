@@ -1,0 +1,37 @@
+# ==============================================================================
+# TokenVector.Audio - Git Ignore Rules
+# ==============================================================================
+
+# Audio Samples & Media Files
+audio_samples/
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.aac
+*.m4a
+*.aiff
+*.aif
+*.raw
+*.pcm
+*.tkva
+
+# Build Output & Temporary Binaries
+bin/
+obj/
+*.exe
+*.il
+*.pdb
+*.tmp
+
+# IDE & Editor files
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+
+# Operating System files
+Thumbs.db
+Desktop.ini
+.DS_Store

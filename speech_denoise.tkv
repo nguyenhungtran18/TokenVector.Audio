@@ -1,0 +1,60 @@
+# -*- coding: utf-8 -*-
+# ====================================================================================================
+# TokenVector.Audio - Speech Denoising & Spectral Subtraction (speech_denoise.tkv)
+# 1. Spectral Subtraction Background Noise Reducer
+# 2. Adaptive Noise Floor Estimator (Stationary Air/Fan Noise Reduction)
+# 100% Pure TokenVector Language (.tkv)
+# ====================================================================================================
+
+class SpectralDenoiseProcessor:
+    fft_size: "i32"
+    oversubtraction_factor: "f64"
+    spectral_floor: "f64"
+    noise_profile: "list"
+    is_noise_profile_set: "i32"
+
+    def __init__(self, fft_size: "i32"):
+        self.fft_size = fft_size
+        self.oversubtraction_factor = 1.3
+        self.spectral_floor = 0.05
+        self.is_noise_profile_set = 0
+        self.noise_profile = []
+        i = 0
+        while i < fft_size // 2:
+            self.noise_profile.append(0.001)
+            i = i + 1
+
+    def update_noise_profile(self, noise_magnitudes: "list"):
+        # Learns stationary background noise spectrum during silence/pause
+        half = self.fft_size // 2
+        i = 0
+        n = len(noise_magnitudes)
+        while i < half and i < n:
+            # Exponential moving average of noise spectrum
+            self.noise_profile[i] = 0.9 * self.noise_profile[i] + 0.1 * noise_magnitudes[i]
+            i = i + 1
+        self.is_noise_profile_set = 1
+
+    def process_spectral_frame(self, noisy_magnitudes: "list") -> "list":
+        # Subtract noise spectrum: |S(f)| = max(|Y(f)| - alpha*|N(f)|, beta*|Y(f)|)
+        clean_mags = []
+        half = self.fft_size // 2
+        alpha = self.oversubtraction_factor
+        beta = self.spectral_floor
+        
+        i = 0
+        n = len(noisy_magnitudes)
+        while i < half and i < n:
+            mag_in = noisy_magnitudes[i]
+            noise_est = self.noise_profile[i]
+            
+            subtracted = mag_in - alpha * noise_est
+            floor_val = beta * mag_in
+            
+            if subtracted < floor_val:
+                subtracted = floor_val
+                
+            clean_mags.append(subtracted)
+            i = i + 1
+            
+        return clean_mags

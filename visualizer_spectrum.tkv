@@ -1,0 +1,114 @@
+# -*- coding: utf-8 -*-
+# ====================================================================================================
+# TokenVector.Audio - Advanced Visualizer & Spectrogram Engine (visualizer_spectrum.tkv)
+# 1. 2D Waterfall Spectrogram Heatmap Engine
+# 2. Stereo Correlation & Lissajous Vectorscope (Circular Radar)
+# 3. Dynamic Bar Spectrum Analyzer (64 - 512 Bins)
+# 100% Pure TokenVector Language (.tkv)
+# ====================================================================================================
+
+class SpectrogramWaterfall:
+    num_bins: "i32"
+    history_depth: "i32"
+    heatmap_grid: "list"
+
+    def __init__(self, num_bins: "i32", history_depth: "i32"):
+        self.num_bins = num_bins
+        self.history_depth = history_depth
+        self.heatmap_grid = []
+        
+        # Initialize 2D grid: depth rows x num_bins columns
+        r = 0
+        while r < history_depth:
+            row = []
+            c = 0
+            while c < num_bins:
+                row.append(0.0)
+                c = c + 1
+            self.heatmap_grid.append(row)
+            r = r + 1
+
+    def push_spectrum_slice(self, frequency_magnitudes: "list"):
+        # Shift rows down
+        r = self.history_depth - 1
+        while r > 0:
+            c = 0
+            while c < self.num_bins:
+                self.heatmap_grid[r][c] = self.heatmap_grid[r - 1][c]
+                c = c + 1
+            r = r - 1
+
+        # Insert new top spectrum slice
+        c = 0
+        n = len(frequency_magnitudes)
+        while c < self.num_bins:
+            if c < n:
+                self.heatmap_grid[0][c] = frequency_magnitudes[c]
+            else:
+                self.heatmap_grid[0][c] = 0.0
+            c = c + 1
+
+
+class StereoVectorscope:
+    mode: "i32"
+
+    def __init__(self):
+        self.mode = 1
+
+    def compute_mid_side_phase(self, left_samples: "list", right_samples: "list") -> "list":
+        # Calculates Mid/Side stereo phase coordinates for Lissajous Vector Scope
+        coords = []
+        n = len(left_samples)
+        if len(right_samples) < n:
+            n = len(right_samples)
+            
+        inv_sqrt2 = 0.7071067811865475
+        i = 0
+        while i < n:
+            l = left_samples[i]
+            r = right_samples[i]
+            # M = (L + R) * 0.707 (Vertical / Mono axis)
+            # S = (L - R) * 0.707 (Horizontal / Stereo width axis)
+            m = (l + r) * inv_sqrt2
+            s = (l - r) * inv_sqrt2
+            coords.append(s) # X
+            coords.append(m) # Y
+            i = i + 1
+            
+        return coords
+
+
+class SpectrumBarRenderer:
+    num_bars: "i32"
+
+    def __init__(self, num_bars: "i32"):
+        self.num_bars = num_bars
+
+    def format_ascii_bars(self, magnitudes: "list") -> "str":
+        # Render visual spectrum bars for real-time console/GUI telemetry
+        bar_chars = [" ", " ", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+        out_str = ""
+        
+        n = len(magnitudes)
+        step = n // self.num_bars
+        if step < 1:
+            step = 1
+            
+        b = 0
+        while b < self.num_bars:
+            idx = b * step
+            val = 0.0
+            if idx < n:
+                val = magnitudes[idx]
+                
+            # Normalize to 0..8
+            char_idx = int(val * 8.0)
+            if char_idx < 0:
+                char_idx = 0
+            if char_idx > 8:
+                char_idx = 8
+                
+            out_str = out_str + bar_chars[char_idx]
+            b = b + 1
+            
+        return out_str

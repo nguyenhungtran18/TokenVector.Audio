@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>TokenVector.Audio</id>
+    <version>1.0.0</version>
+    <title>TokenVector.Audio - Industrial-Grade DSP &amp; Neural Audio Engine</title>
+    <authors>Tran Nguyen Hung</authors>
+    <owners>Tran Nguyen Hung</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <readme>README.md</readme>
+    <description>Ultra high-performance studio audio processing, neural audio codec (3-8 kbps RVQ), psychoacoustic ATH masking, harmonic super-resolution (Chebyshev T2-T5), virtual bass synthesis, 3D binaural HRTF spatializer, zero-latency streaming transport with LPC-16 packet loss concealment, and 10-band equalizer developed natively in TokenVector.</description>
+    <tags>audio dsp neural-codec psychoacoustics virtual-bass super-resolution spatial-audio hrtf fft lpc16 tokenvector</tags>
+    <dependencies>
+      <group targetFramework=".NETFramework4.8" />
+      <group targetFramework="net8.0" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="README.md" target="README.md" />
+    <file src="bin\Release\net8.0\TokenVector.Audio.dll" target="lib\net8.0\TokenVector.Audio.dll" />
+    <file src="bin\Release\TokenVector.Audio.dll" target="lib\net48\TokenVector.Audio.dll" />
+  </files>
+</package>
