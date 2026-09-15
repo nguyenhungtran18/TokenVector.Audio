@@ -10,6 +10,7 @@ __tkv_import__ = [
     "dsp_engine",
     "codec_rvq",
     "tkva_container",
+    "tkva_streamer",
     "enhancement",
     "multiband_mastering",
     "equalizer_10band",
@@ -48,6 +49,7 @@ class TokenVectorAudioEngine:
     flac_decoder: "inferred"
     reverb: "inferred"
     nmf_separator: "inferred"
+    streamer: "inferred"
 
     def __init__(self, sample_rate: "i32", channels: "i32"):
         self.sample_rate = sample_rate
@@ -70,6 +72,7 @@ class TokenVectorAudioEngine:
         self.flac_decoder = FlacLosslessDecoder(sample_rate, channels, 16)
         self.reverb = FastConvolutionReverb(sample_rate)
         self.nmf_separator = NmfSourceSeparator(64, 32, 4)
+        self.streamer = 0
 
     def encode_to_rvq(self, frame_samples: "list") -> "list":
         return self.codec.encode_frame(frame_samples)
@@ -95,8 +98,17 @@ class TokenVectorAudioEngine:
     def time_stretch(self, samples: "list", speed_factor: "f64") -> "list":
         return self.pitch_shifter.time_stretch(samples, speed_factor)
 
+    def create_tkva_playback_pump(self, token_frames: "list", ring_cap: "i32") -> "TkvaPlaybackPump":
+        # Create a streaming playback pump for direct .tkva playback without
+        # full-file decompression. Decodes RVQ token frames on-demand into
+        # a LockFreeRingBuffer sized ring_cap samples.
+        reader = TkvaStreamReader(token_frames, self.sample_rate, self.channels, 480)
+        ring = LockFreeRingBuffer(ring_cap)
+        pump = TkvaPlaybackPump(reader, ring, 4)
+        return pump
+
     def get_version(self) -> "str":
-        return "TokenVector.Audio Studio Complete Engine v2.1 (21 Pure .tkv Modules, Native CIL)"
+        return "TokenVector.Audio Studio Complete Engine v2.2 (22 Pure .tkv Modules, Native CIL)"
 
 def run() -> "i32":
     engine = TokenVectorAudioEngine(48000, 2)

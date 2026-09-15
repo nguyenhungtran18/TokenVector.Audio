@@ -1,88 +1,125 @@
-# ⚡ TokenVector.Audio: The Next-Generation DSP & Neural Audio Engine Built in TokenVector
+# TokenVector.Audio
 
 <div align="center">
 
 ![Language](https://img.shields.io/badge/Language-100%25%20Pure%20TokenVector%20(.tkv)-6C5CE7?style=for-the-badge)
-![Compiler](https://img.shields.io/badge/Compiler-tkvc.exe%20(Native%20CIL%20AOT)-00B894?style=for-the-badge)
+![Compiler](https://img.shields.io/badge/Compiler-tkvc.exe%20(CIL%20AOT)-00B894?style=for-the-badge)
 ![Architecture](https://img.shields.io/badge/Architecture-Zero%20External%20Dependencies-0984E3?style=for-the-badge)
-![Verification](https://img.shields.io/badge/Tests-16%2F16%20PASSED%20(100%25)-E17055?style=for-the-badge)
+![Tests](https://img.shields.io/badge/Tests-22%2F22%20PASSED-E17055?style=for-the-badge)
 
-**An industrial-grade studio audio processing, neural audio codec, and psychoacoustic engine developed 100% natively in the TokenVector (`.tkv`) programming language.**
-
-[The TokenVector Manifesto](#-the-tokenvector-language-manifesto) • [16 Core Modules](#-the-16-core-tokenvector-modules) • [4 Core Breakthroughs](#-4-core-technological-breakthroughs) • [Verification](#-verification--test-results-1616-passed)
+**A DSP and neural audio codec library written entirely in the TokenVector (`.tkv`) programming language. Zero external runtime dependencies; compiled to standard ECMA-335 CIL bytecode via the native `tkvc.exe` toolchain.**
 
 </div>
 
 ---
 
-## 💎 The TokenVector Language Manifesto
+## Overview
 
-For decades, advanced Digital Signal Processing (DSP) and Neural Audio engineering have been constrained to legacy C/C++ or weighed down by bulky multi-layer runtime dependencies. **TokenVector.Audio demonstrates the power and expressiveness of the TokenVector programming language:**
+TokenVector.Audio is a collection of 22 pure-`.tkv` modules covering the audio processing pipeline from low-level signal transforms through perceptual coding, spatial rendering, and streaming transport. The library is intended as a demonstration of the TokenVector language's capability for numerically intensive DSP workloads, and as a reference implementation of the described algorithms in a single-language, dependency-free environment.
 
-* **🔥 100% Pure TokenVector (`.tkv`):** Every single algorithm—from Complex Radix-2 FFT and Chebyshev polynomial harmonic synthesizers to 4–8 stage RVQ quantizers and 3D HRTF spherical head models—is authored purely in clean, elegant TokenVector syntax.
-* **⚡ Zero External Dependencies:** The native TokenVector compiler (`tkvc.exe`) ingests `.tkv` sources and directly emits optimized, standard ECMA-335 CIL Bytecode, assembling standalone, high-performance binaries that run directly on bare-metal hardware.
-* **🛡️ True Real-Time Execution:** Zero garbage collection churn on audio processing paths, minimal memory footprints, and microsecond latency suitable for resource-constrained edge/IoT devices and modern desktop workstations.
+All modules compile to `.dll` via `ilasm.exe` and are consumable from any .NET 4.8 / .NET 8.0 host without third-party packages.
 
 ---
 
-## 🏛️ The 16 Core TokenVector Modules
+## Architecture
 
 ```
-                                  ╔══════════════════════════════════════════════╗
-                                  ║         TOKENVECTOR.AUDIO ARCHITECTURE       ║
-                                  ╚══════════════════════════════════════════════╝
-                                                         │
-         ┌───────────────────────────┬───────────────────┼───────────────────┬───────────────────────────┐
-         ▼                           ▼                   ▼                   ▼                           ▼
-┌──────────────────┐       ┌──────────────────┐┌──────────────────┐┌──────────────────┐       ┌──────────────────┐
-│   MEMORY & I/O   │       │   DSP & MATH     ││  NEURAL CODEC    ││STUDIO ENHANCEMENT│       │ STREAMING & AI   │
-├──────────────────┤       ├──────────────────┤├──────────────────┤├──────────────────┤       ├──────────────────┤
-│• audio_buffer.tkv│       │• dsp_core.tkv    ││• codec_rvq.tkv   ││• enhancement.tkv │       │• streaming_plc.tkv
-│• tkva_container  │       │• dsp_engine.tkv  ││• speech_vad.tkv  ││• multiband_master│       │• speech_denoise  │
-│  .tkv            │       │• dsp_lib.tkv     ││• evaluation.tkv  ││• equalizer_10band│       │• visualizer_spec │
-└──────────────────┘       └──────────────────┘└──────────────────┘│• spatial.tkv      │       │• tv_audio_engine │
-                                                                   └──────────────────┘       └──────────────────┘
-```
-
-| # | Module `.tkv` | Architectural Layer | Specialized Algorithms Built in Pure TokenVector |
-| :---: | :--- | :--- | :--- |
-| **1** | **`audio_buffer.tkv`** | Memory & Multi-Format I/O | Multi-channel PCM buffer, amplitude normalization; Binary format auto-detection: **WAV, AIFF, RAW, TKVA, MP3, FLAC, OGG, AAC**. |
-| **2** | **`dsp_core.tkv`** | Math & Transforms | **Cooley-Tukey Radix-2 Complex FFT/IFFT** with bit-reversal indexing; **80 Mel Filterbank**; **Polyphase Sinc Resampler**. |
-| **3** | **`dsp_engine.tkv`** | Digital Filters | Direct-Form IIR **Biquad Filters** (Low-Pass, High-Pass, Band-Pass, Notch). |
-| **4** | **`dsp_lib.tkv`** | Audio Math Utilities | Signal **RMS** energy calculator, Decibel conversion ($20 \log_{10}$), and sample interpolation. |
-| **5** | **`codec_rvq.tkv`** | Neural Codec (3–8 kbps) | **24 Bark Critical Bands** psychoacoustic model & **ATH** curve; **RVQ 4–8 stage** residual vector quantizer for ultralight studio compression. |
-| **6** | **`tkva_container.tkv`** | Proprietary Audio Format | Native TokenVector Audio container (`.tkva`) packaging metadata headers and compressed RVQ token bitstreams. |
-| **7** | **`enhancement.tkv`** | Studio Remastering | **Chebyshev Polynomials ($T_2 - T_5$)** 24kHz air harmonic exciter; **Psychoacoustic Virtual Bass** ($2f_0, 3f_0$); Stereo Widener; Karaoke Vocal Remover; **NLMS AEC**. |
-| **8** | **`multiband_mastering.tkv`**| Dynamic Mastering | 3-Band Linkwitz-Riley Crossover, independent per-band **Dynamic Compressors** (Attack/Release/Threshold/Ratio) and **Studio Brickwall Limiter**. |
-| **9** | **`equalizer_10band.tkv`** | 10-Band Studio EQ | 10-Band ISO standard equalizer (31Hz to 16kHz) with studio presets: **Flat, BassBoost, VocalBoost, Rock, Pop, Electronic, Jazz**. |
-| **10** | **`spatial.tkv`** | 3D Spatial & Acoustics | 360° binaural positioning via **Woodworth ITD**, **IID**, **Pinna Elevation Filter**, and **FDN Reverb**. |
-| **11** | **`streaming_plc.tkv`** | Low-Latency Transport & PLC | $2.5\text{ms} - 5\text{ms}$ micro-frame packetizer; **LPC-16 Levinson-Durbin** autoregressive packet loss concealment. |
-| **12** | **`speech_vad.tkv`** | Voice AI & Pitch Tracking | **Voice Activity Detection (Energy + ZCR)** silence suppression; Real-time vocal pitch tracking ($f_0$ via **YIN Algorithm**). |
-| **13** | **`speech_denoise.tkv`** | Speech Denoising | Stationary background environmental noise reduction using real-time **Spectral Subtraction**. |
-| **14** | **`visualizer_spectrum.tkv`**| Visualizer & Radar | **2D Waterfall Spectrogram** rolling heatmap, **Stereo Vectorscope (Lissajous phase radar)**, dynamic spectrum bars. |
-| **15** | **`evaluation.tkv`** | Loudness Calibration | Standardized **EBU R128 (-14 LUFS)** loudness normalization and digital **True Peak Limiter** clipping safety. |
-| **16** | **`tv_audio_engine.tkv`** | Master Orchestrator | Master engine integrating all 15 modules into a unified API controlling the full audio lifecycle. |
-
----
-
-## 🚀 4 Core Technological Breakthroughs
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                       4 CORE AUDIO BREAKTHROUGHS POWERED BY TOKENVECTOR                         │
-├─────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ 1. Hybrid Neural Codec (codec_rvq.tkv)       : 48kHz Studio compressed to 3-8 kbps via RVQ & ATH│
-│ 2. Harmonic Super-Resolution (enhancement.tkv): 24kHz Air restored via Chebyshev T2-T5 Exciter  │
-│ 3. Psychoacoustic Virtual Bass (enhancement) : Deep sub-bass on small speakers via non-linear f0│
-│ 4. Zero-Latency PLC (streaming_plc.tkv)      : 2.5ms frames & packet drop recovery via LPC-16   │
-└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+                          ╔══════════════════════════════════════╗
+                          ║       TOKENVECTOR.AUDIO (v1.2.0)     ║
+                          ╚══════════════════════════════════════╝
+                                           │
+     ┌────────────────┬────────────────────┼──────────────────┬────────────────────┐
+     ▼                ▼                    ▼                  ▼                    ▼
+┌──────────┐  ┌──────────────┐  ┌──────────────────┐  ┌────────────┐  ┌────────────────────┐
+│ I/O      │  │ Transforms   │  │ Perceptual Codec  │  │ Enhancement│  │ Streaming / AI     │
+├──────────┤  ├──────────────┤  ├──────────────────┤  ├────────────┤  ├────────────────────┤
+│audio_buf │  │ dsp_core     │  │ codec_rvq        │  │enhancement │  │ streaming_plc      │
+│tkva_cont │  │ dsp_engine   │  │ speech_vad       │  │multiband   │  │ speech_denoise     │
+│tkva_stream│ │ dsp_lib      │  │ evaluation       │  │eq_10band   │  │ visualizer_spectrum│
+│          │  │ dsp_mdct     │  │ codec_flac       │  │spatial     │  │ tv_audio_engine    │
+│          │  │ pitch_wsola  │  │ nmf_separation   │  │            │  │                    │
+└──────────┘  └──────────────┘  └──────────────────┘  └────────────┘  └────────────────────┘
 ```
 
 ---
 
-## 🧪 Verification & Test Results (21/21 PASSED)
+## Modules
 
-Compiled and verified with the native TokenVector compiler toolchain:
+| # | Module | Layer | Algorithms |
+|:--:|:--|:--|:--|
+| 1 | `audio_buffer.tkv` | PCM I/O | Multi-channel sample buffer; amplitude normalization; format header detection: WAV, AIFF, RAW, TKVA, MP3, FLAC, OGG, AAC |
+| 2 | `dsp_core.tkv` | Spectral Analysis | Cooley-Tukey Radix-2 FFT/IFFT with bit-reversal permutation; 80-band Mel filterbank; Polyphase Sinc resampler |
+| 3 | `dsp_engine.tkv` | Digital Filters | Direct-Form II Biquad IIR: Low-Pass, High-Pass, Band-Pass, Notch |
+| 4 | `dsp_lib.tkv` | Signal Utilities | Short-time RMS energy; dB conversion ($20\log_{10}$); linear interpolation |
+| 5 | `codec_rvq.tkv` | Perceptual Codec | 24 Bark critical-band psychoacoustic model; Absolute Threshold of Hearing (ATH) curve; 4–8 stage Residual Vector Quantization (RVQ) |
+| 6 | `tkva_container.tkv` | Container Format | `.tkva` proprietary container: metadata header serialization and RVQ token-frame bitstream packing |
+| 7 | `tkva_streamer.tkv` | Streaming Decoder | Frame-cursor `TkvaStreamReader`; on-demand `TkvaPlaybackPump` feeding decoded PCM into `LockFreeRingBuffer` — no full-file decompression required |
+| 8 | `enhancement.tkv` | Spectral Enhancement | Chebyshev polynomial harmonic exciter ($T_2$–$T_5$, 8–24 kHz); psychoacoustic virtual bass ($2f_0$, $3f_0$ non-linear synthesis); stereo width expansion; NLMS AEC |
+| 9 | `multiband_mastering.tkv` | Dynamic Processing | 3-band Linkwitz-Riley crossover; per-band feed-forward dynamic compressor (Attack / Release / Threshold / Ratio); brickwall True-Peak limiter |
+| 10 | `equalizer_10band.tkv` | Parametric EQ | 10-band ISO-standard EQ (31 Hz – 16 kHz); presets: Flat, BassBoost, VocalBoost, Rock, Pop, Electronic, Jazz |
+| 11 | `spatial.tkv` | Binaural Rendering | Woodworth ITD head-shadow model; IID pinna elevation filter; FDN late reverberation |
+| 12 | `streaming_plc.tkv` | Transport / PLC | 2.5 ms – 5 ms micro-frame packetizer; LPC-16 Levinson-Durbin autoregressive packet-loss concealment |
+| 13 | `speech_vad.tkv` | Voice Detection | Short-time energy + zero-crossing-rate VAD; YIN $f_0$ pitch estimator |
+| 14 | `speech_denoise.tkv` | Noise Reduction | Single-channel stationary-noise spectral subtraction |
+| 15 | `visualizer_spectrum.tkv` | Visualization | 2D rolling waterfall spectrogram; stereo Lissajous vectorscope (M/S) |
+| 16 | `evaluation.tkv` | Loudness Metering | EBU R128 integrated loudness (−14 LUFS); True-Peak limiting |
+| 17 | `dsp_mdct.tkv` | Transform | MDCT/IMDCT with Sine-window TDAC property (50% frame overlap) |
+| 18 | `pitch_shifter_wsola.tkv` | Time-Scale / Pitch | WSOLA pitch shift ±12 semitones; time stretch 0.5×–2.0× |
+| 19 | `codec_flac.tkv` | Lossless Codec | Rice entropy decoding; LPC residual synthesis; stereo decorrelation (Left/Side, Mid/Side) |
+| 20 | `reverb_convolution.tkv` | Convolution Reverb | Schroeder-style synthetic IR; overlap-add partitioned convolution |
+| 21 | `nmf_separation.tkv` | Source Separation | Non-negative Matrix Factorization (multiplicative update); soft Wiener mask for vocal / accompaniment split |
+| 22 | `tv_audio_engine.tkv` | Engine Facade | Unified API integrating all 21 sub-modules; TKVA streaming playback factory |
+
+---
+
+## TKVA Streaming Playback
+
+A key design goal of v1.2.0 is to allow `.tkva` files to be decoded **incrementally** at frame granularity, feeding an SPSC ring buffer that a downstream audio callback can consume directly — without first decompressing the entire file to PCM or WAV.
+
+```
+.tkva bitstream
+    │
+    ▼
+TkvaStreamReader          ← sequential frame cursor; supports random-access seek
+    │  read_next_frame_tokens()
+    ▼
+TkvaPlaybackPump          ← RVQ codec.decode_frame() per pump call
+    │  pump_one_frame()
+    ▼
+LockFreeRingBuffer        ← SPSC; capacity configured by caller
+    │  read_sample()
+    ▼
+DAC / audio callback
+```
+
+**API (via `TokenVectorAudioEngine`):**
+
+```python
+# Create pump from token_frames list (loaded from .tkva container)
+pump = engine.create_tkva_playback_pump(token_frames, ring_cap=4096)
+pump.start()
+
+# Pre-buffer before first audio callback
+pump.prefill_buffer(target_frames=8)
+
+# Inside audio callback (per-sample):
+sample = pump.read_pcm_sample()
+
+# Refill ring buffer (called from a producer thread or timer):
+pump.pump_one_frame()
+
+# Seek to a specific frame (for scrubbing):
+pump.reader.seek_to_frame(frame_index)
+
+# Diagnostics:
+stats = pump.get_stats()   # "frames_decoded=N samples_written=M pos=T.Ts / D.Ds (P%)"
+```
+
+---
+
+## Test Results (22/22 PASSED)
+
+Build and run the verification suite:
 
 ```powershell
 tkvc.exe build test_audio_engine.tkv --entry run --out test_audio_engine.exe
@@ -91,7 +128,7 @@ tkvc.exe build test_audio_engine.tkv --entry run --out test_audio_engine.exe
 
 ```
 ================================================================================
-TOKENVECTOR.AUDIO - COMPLETE 100% SUITE VERIFICATION (21/21 TESTS)
+TOKENVECTOR.AUDIO - COMPLETE 100% SUITE VERIFICATION (22/22 TESTS)
 ================================================================================
 [PASS] BT1_Psychoacoustic_Bark_ATH_Masking
 [PASS] BT1_Residual_Vector_Quantization_RVQ4
@@ -114,19 +151,26 @@ TOKENVECTOR.AUDIO - COMPLETE 100% SUITE VERIFICATION (21/21 TESTS)
 [PASS] ADV3_FLAC_Rice_Entropy_And_LPC_Decode
 [PASS] ADV4_Partitioned_Convolution_Reverb
 [PASS] ADV5_NMF_Source_Separation_Vocal_Mask
+[PASS] ADV6_TKVA_Frame_Streaming_Direct_Playback
 ================================================================================
-TEST SUMMARY: 21/21 PASSED (100% PURE TOKENVECTOR .TKV)
+TEST SUMMARY: 22/22 PASSED (100% PURE TOKENVECTOR .TKV)
 ================================================================================
 ```
 
 ---
 
-## 👤 Author & Ownership
+## Build
 
-- **Author & Architect:** Tran Nguyen Hung ([nguyen.hung.tran.18@gmail.com](mailto:nguyen.hung.tran.18@gmail.com))
-- **Language Platform:** TokenVector (.tkv)
-- **License:** [MIT License](LICENSE)
+```powershell
+.\build_package.ps1
+```
 
-<div align="center">
-<i>Crafted with pride using 100% Native Power of the TokenVector Programming Language.</i>
-</div>
+The script detects `tkvc.exe` from `PATH`, compiles all `.tkv` sources, assembles `TokenVector.Audio.dll` via `ilasm.exe`, and packages a NuGet `.nupkg`.
+
+---
+
+## Author
+
+- **Author:** Tran Nguyen Hung ([nguyen.hung.tran.18@gmail.com](mailto:nguyen.hung.tran.18@gmail.com))
+- **Language:** TokenVector (.tkv)
+- **License:** [MIT](LICENSE)

@@ -1,88 +1,123 @@
-# ⚡ TokenVector.Audio: Kỷ Nguyên Mới Của Xử Lý m Thanh Bằng Ngôn Ngữ TokenVector
+# TokenVector.Audio
 
 <div align="center">
 
 ![Language](https://img.shields.io/badge/Language-100%25%20Pure%20TokenVector%20(.tkv)-6C5CE7?style=for-the-badge)
-![Compiler](https://img.shields.io/badge/Compiler-tkvc.exe%20(Native%20CIL%20AOT)-00B894?style=for-the-badge)
+![Compiler](https://img.shields.io/badge/Compiler-tkvc.exe%20(CIL%20AOT)-00B894?style=for-the-badge)
 ![Architecture](https://img.shields.io/badge/Architecture-Kh%C3%B4ng%20Ph%E1%BB%A5%20Thu%E1%BB%99c%20Th%C6%B0%20Vi%E1%BB%87n%20Ngo%C3%A0i-0984E3?style=for-the-badge)
-![Verification](https://img.shields.io/badge/Tests-16%2F16%20PASSED%20(100%25)-E17055?style=for-the-badge)
+![Tests](https://img.shields.io/badge/Tests-22%2F22%20PASSED-E17055?style=for-the-badge)
 
-**Đột phá công nghệ âm thanh Studio, Neural Codec và Xử lý Tín hiệu Số (DSP) được xây dựng 100% thuần túy bằng Ngôn ngữ Lập trình TokenVector (`.tkv`).**
-
-[Tuyên Ngôn Công Nghệ](#-tuyên-ngôn-công-nghệ-tokenvector) • [Bộ 16 Module Hạt Nhân](#-bộ-16-module-hạt-nhân-thuần-tokenvector) • [4 Trụ Cột Đột Phá](#-4-trụ-cột-công-nghệ-đột-phá) • [Kiểm Thử Toàn Diện](#-chứng-minh-thực-thi-1616-tests-passed)
+**Thư viện DSP và neural audio codec viết hoàn toàn bằng ngôn ngữ TokenVector (`.tkv`). Không phụ thuộc runtime ngoài; biên dịch thành CIL bytecode chuẩn ECMA-335 qua toolchain `tkvc.exe`.**
 
 </div>
 
 ---
 
-## 💎 Tuyên Ngôn Công Nghệ TokenVector
+## Tổng quan
 
-Trước đây, ngành xử lý tín hiệu âm thanh cao cấp (DSP) và Neural Audio luôn bị thống trị bởi các ngôn ngữ truyền thống như C/C++ hoặc sự cồng kềnh của các Framework ngoại lai. **TokenVector.Audio ra đời để định nghĩa lại tiêu chuẩn:**
+TokenVector.Audio gồm 22 module thuần `.tkv` bao phủ pipeline xử lý âm thanh từ biến đổi tín hiệu cấp thấp đến perceptual coding, binaural rendering và streaming transport. Thư viện được thiết kế như một reference implementation của các thuật toán DSP/audio trong môi trường đơn ngôn ngữ, không phụ thuộc thư viện ngoài.
 
-* **🔥 100% Native TokenVector (`.tkv`):** Toàn bộ 16 module—từ các phép biến đổi Fourier số phức, đa thức Chebyshev, ma trận lượng tử hóa vector RVQ đến mô hình đầu cầu 3D HRTF—đều được viết bằng cú pháp tinh gọn và thanh lịch của ngôn ngữ **TokenVector**.
-* **⚡ Không Phụ Thuộc Thư Viện Ngoài:** Trình biên dịch **`tkvc.exe`** phân tích cú pháp `.tkv` và phát sinh trực tiếp mã trung gian CIL Bytecode chuẩn quốc tế (ECMA-335), lắp ráp thành các tệp thực thi siêu nhẹ, độc lập và chạy ở tốc độ phần cứng tối đa.
-* **🛡️ Hiệu Năng Thời Gian Thực Tuyệt Đối:** Loại bỏ hoàn toàn chi phí ảo hóa, không rác bộ nhớ (Zero-GC Churn), cho phép giải mã và xử lý âm thanh thời gian thực ngay trên chip yếu, thiết bị IoT và các hệ điều hành máy tính hiện đại.
+Toàn bộ module biên dịch ra `.dll` qua `ilasm.exe`, tiêu thụ được từ bất kỳ host .NET 4.8 / .NET 8.0 nào mà không cần NuGet package nào khác.
 
 ---
 
-## 🏛️ Bộ 16 Module Hạt Nhân Thuần TokenVector (`.tkv`)
+## Kiến trúc
 
 ```
-                                  ╔══════════════════════════════════════════════╗
-                                  ║         TOKENVECTOR.AUDIO ARCHITECTURE       ║
-                                  ╚══════════════════════════════════════════════╝
-                                                         │
-         ┌───────────────────────────┬───────────────────┼───────────────────┬───────────────────────────┐
-         ▼                           ▼                   ▼                   ▼                           ▼
-┌──────────────────┐       ┌──────────────────┐┌──────────────────┐┌──────────────────┐       ┌──────────────────┐
-│   MEMORY & I/O   │       │   DSP & MATH     ││  NEURAL CODEC    ││STUDIO ENHANCEMENT│       │ STREAMING & AI   │
-├──────────────────┤       ├──────────────────┤├──────────────────┤├──────────────────┤       ├──────────────────┤
-│• audio_buffer.tkv│       │• dsp_core.tkv    ││• codec_rvq.tkv   ││• enhancement.tkv │       │• streaming_plc.tkv
-│• tkva_container  │       │• dsp_engine.tkv  ││• speech_vad.tkv  ││• multiband_master│       │• speech_denoise  │
-│  .tkv            │       │• dsp_lib.tkv     ││• evaluation.tkv  ││• equalizer_10band│       │• visualizer_spec │
-└──────────────────┘       └──────────────────┘└──────────────────┘│• spatial.tkv      │       │• tv_audio_engine │
-                                                                   └──────────────────┘       └──────────────────┘
-```
-
-| STT | Module `.tkv` | Phân Lớp Kỹ Thuật | Nhiệm Vụ & Thuật Toán Chuyên Sâu Bằng TokenVector |
-| :---: | :--- | :--- | :--- |
-| **1** | **`audio_buffer.tkv`** | Memory & I/O Engine | Quản lý bộ đệm PCM đa kênh, chuẩn hóa biên độ mẫu; Tự động nhận diện nhị phân đa định dạng: **WAV, AIFF, RAW, TKVA, MP3, FLAC, OGG, AAC**. |
-| **2** | **`dsp_core.tkv`** | Toán Học & Biến Đổi | Thuật toán **Cooley-Tukey Radix-2 Complex FFT/IFFT** với hoán vị đảo bit; Ma trận **80 Mel Filterbank**; Bộ đổi tần số lấy mẫu **Polyphase Sinc Resampler**. |
-| **3** | **`dsp_engine.tkv`** | Bộ Lọc Tín Hiệu Số | Động cơ lọc số Direct-Form IIR **Biquad Filters** (Low-Pass, High-Pass, Band-Pass, Notch). |
-| **4** | **`dsp_lib.tkv`** | Tiện Ích m Học | Tính toán năng lượng tín hiệu **RMS**, chuyển đổi thang đo Decibel chuẩn hóa ($20 \log_{10}$), và nội suy mẫu mượt mà. |
-| **5** | **`codec_rvq.tkv`** | Neural Codec 3–8 kbps | Mô hình Tâm lý Âm học **24 Bark Critical Bands** & Ngưỡng nghe tuyệt đối **ATH**; Lượng tử hóa vector dư **RVQ 4–8 stages** nén âm thanh Studio siêu nhẹ. |
-| **6** | **`tkva_container.tkv`** | Container Độc Quyền | Chuẩn container âm thanh riêng biệt của TokenVector (`.tkva`), đóng gói Header Metadata và payload chuỗi token RVQ nén. |
-| **7** | **`enhancement.tkv`** | Phục Chế Phòng Thu | Tái tạo dải cao 24kHz bằng **Đa thức Chebyshev ($T_2 - T_5$)**; **Psychoacoustic Virtual Bass** ($2f_0, 3f_0$); Mở rộng Stereo; Tách Beat Karaoke; Bộ lọc triệt tiêu tiếng vọng **NLMS AEC**. |
-| **8** | **`multiband_mastering.tkv`**| Dynamic Mastering | Crossover 3 dải tần (Linkwitz-Riley), **Dynamic Range Compressor** độc lập từng dải (Attack/Release/Threshold/Ratio) và **Studio Brickwall Limiter**. |
-| **9** | **`equalizer_10band.tkv`** | 10-Band Studio EQ | Bộ cân bằng âm thanh 10 dải tần chuẩn ISO (31Hz đến 16kHz) với 7 Presets phòng thu: **Flat, BassBoost, VocalBoost, Rock, Pop, Electronic, Jazz**. |
-| **10** | **`spatial.tkv`** | m Thanh Không Gian 3D | Định vị âm thanh 360° theo mô hình đầu cầu **Woodworth ITD**, suy giảm **IID**, bộ lọc góc nâng **Pinna** và mạng phản xạ trễ **FDN Reverb**. |
-| **11** | **`streaming_plc.tkv`** | Truyền Tải & Vá Lỗi | Đóng gói micro-frame $2.5\text{ms} - 5\text{ms}$ truyền phát siêu tốc; Thuật toán tự hồi quy **LPC-16 Levinson-Durbin** tự vá gói tin bị mất khi mạng lag (Packet Loss). |
-| **12** | **`speech_vad.tkv`** | Voice AI & Pitch Tracking | Nhận diện tiếng người nói **VAD (Short-time Energy + ZCR)** ngắt truyền khi im lặng; Dò tìm cao độ nốt nhạc và tần số cơ bản ($f_0$) bằng thuật toán **YIN**. |
-| **13** | **`speech_denoise.tkv`** | Khử Nhiễu Tiếng Nói | Bộ khử ồn môi trường nền tĩnh (tiếng quạt, gió, tạp âm máy móc) bằng phương pháp **Trừ phổ (Spectral Subtraction)** thời gian thực. |
-| **14** | **`visualizer_spectrum.tkv`**| Trực Quan Hóa m Thanh | **2D Waterfall Spectrogram** bản đồ nhiệt phổ cuộn thời gian thực; **Stereo Vectorscope (Lissajous Radar)** đo tương quan pha; Bộ vẽ thanh phổ động. |
-| **15** | **`evaluation.tkv`** | Chuẩn Hóa Chuẩn Studio | Đo độ lớn âm thanh tích hợp chuẩn quốc tế **EBU R128 (-14 LUFS)** và bộ giới hạn đỉnh an toàn **True Peak Limiter**. |
-| **16** | **`tv_audio_engine.tkv`** | Master Orchestrator | Hạt nhân hợp nhất toàn bộ 15 thư viện vào một API duy nhất, điều phối toàn bộ vòng đời xử lý âm thanh của TokenVector. |
-
----
-
-## 🚀 4 Trụ Cột Đột Phá Công Nghệ
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                     4 ĐỘT PHÁ CÔNG NGHỆ ÂM THANH CỐT LÕI BẰNG TOKENVECTOR                       │
-├─────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ 1. Hybrid Neural Codec (codec_rvq.tkv)       : Nén Studio 48kHz xuống 3-8 kbps bằng RVQ & ATH   │
-│ 2. Harmonic Super-Resolution (enhancement.tkv): Bù dải cao 24kHz qua Đa thức Chebyshev T2-T5    │
-│ 3. Psychoacoustic Virtual Bass (enhancement) : Tái hiện Sub-bass cho loa nhỏ qua sóng hài phi tuyến│
-│ 4. Zero-Latency PLC (streaming_plc.tkv)      : Đóng gói 2.5ms & Tự vá mất gói bằng LPC-16       │
-└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+                          ╔══════════════════════════════════════╗
+                          ║       TOKENVECTOR.AUDIO (v1.2.0)     ║
+                          ╚══════════════════════════════════════╝
+                                           │
+     ┌────────────────┬────────────────────┼──────────────────┬────────────────────┐
+     ▼                ▼                    ▼                  ▼                    ▼
+┌──────────┐  ┌──────────────┐  ┌──────────────────┐  ┌────────────┐  ┌────────────────────┐
+│ I/O      │  │ Transforms   │  │ Perceptual Codec  │  │ Enhancement│  │ Streaming / AI     │
+├──────────┤  ├──────────────┤  ├──────────────────┤  ├────────────┤  ├────────────────────┤
+│audio_buf │  │ dsp_core     │  │ codec_rvq        │  │enhancement │  │ streaming_plc      │
+│tkva_cont │  │ dsp_engine   │  │ speech_vad       │  │multiband   │  │ speech_denoise     │
+│tkva_stream│ │ dsp_lib      │  │ evaluation       │  │eq_10band   │  │ visualizer_spectrum│
+│          │  │ dsp_mdct     │  │ codec_flac       │  │spatial     │  │ tv_audio_engine    │
+│          │  │ pitch_wsola  │  │ nmf_separation   │  │            │  │                    │
+└──────────┘  └──────────────┘  └──────────────────┘  └────────────┘  └────────────────────┘
 ```
 
 ---
 
-## 🧪 Chứng Minh Thực Thi (21/21 Tests PASSED)
+## Danh sách module
 
-Toàn bộ hệ thống được biên dịch và kiểm chứng trực tiếp bằng trình biên dịch TokenVector:
+| STT | Module | Tầng | Thuật toán |
+|:--:|:--|:--|:--|
+| 1 | `audio_buffer.tkv` | PCM I/O | Bộ đệm mẫu đa kênh; chuẩn hóa biên độ; nhận diện header định dạng: WAV, AIFF, RAW, TKVA, MP3, FLAC, OGG, AAC |
+| 2 | `dsp_core.tkv` | Phân tích phổ | Cooley-Tukey Radix-2 FFT/IFFT với hoán vị bit-reversal; 80-band Mel filterbank; Polyphase Sinc resampler |
+| 3 | `dsp_engine.tkv` | Bộ lọc số | Direct-Form II Biquad IIR: Low-Pass, High-Pass, Band-Pass, Notch |
+| 4 | `dsp_lib.tkv` | Tiện ích tín hiệu | Short-time RMS energy; chuyển đổi dB ($20\log_{10}$); nội suy tuyến tính |
+| 5 | `codec_rvq.tkv` | Perceptual Codec | 24 Bark critical-band psychoacoustic model; Absolute Threshold of Hearing (ATH); RVQ 4–8 stage |
+| 6 | `tkva_container.tkv` | Container Format | Container `.tkva`: header metadata và đóng gói bitstream token RVQ |
+| 7 | `tkva_streamer.tkv` | Streaming Decoder | `TkvaStreamReader` cursor theo frame; `TkvaPlaybackPump` decode on-demand vào `LockFreeRingBuffer` — không cần giải nén toàn bộ file trước khi phát |
+| 8 | `enhancement.tkv` | Kích thích phổ | Chebyshev harmonic exciter ($T_2$–$T_5$, 8–24 kHz); virtual bass ($2f_0$, $3f_0$ non-linear); stereo width; NLMS AEC |
+| 9 | `multiband_mastering.tkv` | Dynamic Processing | 3-band Linkwitz-Riley crossover; feed-forward compressor (Attack / Release / Threshold / Ratio); True-Peak brickwall limiter |
+| 10 | `equalizer_10band.tkv` | Parametric EQ | 10-band ISO (31 Hz – 16 kHz); presets: Flat, BassBoost, VocalBoost, Rock, Pop, Electronic, Jazz |
+| 11 | `spatial.tkv` | Binaural Rendering | Woodworth ITD; IID; pinna elevation filter; FDN late reverberation |
+| 12 | `streaming_plc.tkv` | Transport / PLC | Micro-frame packetizer 2.5–5 ms; LPC-16 Levinson-Durbin autoregressive packet-loss concealment |
+| 13 | `speech_vad.tkv` | Voice Detection | VAD bằng short-time energy + ZCR; YIN $f_0$ pitch estimator |
+| 14 | `speech_denoise.tkv` | Khử nhiễu | Spectral subtraction nhiễu nền tĩnh (single-channel) |
+| 15 | `visualizer_spectrum.tkv` | Visualization | 2D rolling waterfall spectrogram; Lissajous vectorscope stereo M/S |
+| 16 | `evaluation.tkv` | Loudness Metering | EBU R128 integrated loudness (−14 LUFS); True-Peak limiting |
+| 17 | `dsp_mdct.tkv` | Biến đổi | MDCT/IMDCT với Sine-window TDAC (50% frame overlap) |
+| 18 | `pitch_shifter_wsola.tkv` | Time-Scale / Pitch | WSOLA pitch shift ±12 semitones; time stretch 0.5×–2.0× |
+| 19 | `codec_flac.tkv` | Lossless Codec | Rice entropy decoding; LPC residual synthesis; stereo decorrelation (Left/Side, Mid/Side) |
+| 20 | `reverb_convolution.tkv` | Convolution Reverb | Schroeder-style synthetic IR; overlap-add partitioned convolution |
+| 21 | `nmf_separation.tkv` | Source Separation | Non-negative Matrix Factorization (multiplicative update); soft Wiener mask vocal / accompaniment |
+| 22 | `tv_audio_engine.tkv` | Engine Facade | API thống nhất 21 sub-module; factory tạo TKVA streaming playback pump |
+
+---
+
+## TKVA Streaming Playback
+
+Từ v1.2.0, file `.tkva` có thể được decode **theo từng frame RVQ** (on-demand), đẩy PCM sample vào SPSC `LockFreeRingBuffer` để audio callback tiêu thụ — **không cần giải nén toàn bộ file ra PCM/WAV trước**.
+
+```
+.tkva bitstream
+    │
+    ▼
+TkvaStreamReader       ← con trỏ frame tuần tự; hỗ trợ seek ngẫu nhiên
+    │  read_next_frame_tokens()
+    ▼
+TkvaPlaybackPump       ← RVQ codec.decode_frame() mỗi lần pump
+    │  pump_one_frame()
+    ▼
+LockFreeRingBuffer     ← SPSC; capacity do caller cấu hình
+    │  read_sample()
+    ▼
+DAC / audio callback
+```
+
+**API (qua `TokenVectorAudioEngine`):**
+
+```python
+# Tạo pump từ token_frames (đọc từ container .tkva)
+pump = engine.create_tkva_playback_pump(token_frames, ring_cap=4096)
+pump.start()
+
+# Pre-buffer trước audio callback đầu tiên
+pump.prefill_buffer(target_frames=8)
+
+# Trong audio callback (mỗi sample):
+sample = pump.read_pcm_sample()
+
+# Bơm thêm frame vào ring buffer (producer thread hoặc timer):
+pump.pump_one_frame()
+
+# Seek đến frame bất kỳ (scrubbing):
+pump.reader.seek_to_frame(frame_index)
+
+# Thống kê:
+stats = pump.get_stats()   # "frames_decoded=N samples_written=M pos=T.Ts / D.Ds (P%)"
+```
+
+---
+
+## Kết quả kiểm thử (22/22 PASSED)
 
 ```powershell
 tkvc.exe build test_audio_engine.tkv --entry run --out test_audio_engine.exe
@@ -91,7 +126,7 @@ tkvc.exe build test_audio_engine.tkv --entry run --out test_audio_engine.exe
 
 ```
 ================================================================================
-TOKENVECTOR.AUDIO - COMPLETE 100% SUITE VERIFICATION (21/21 TESTS)
+TOKENVECTOR.AUDIO - COMPLETE 100% SUITE VERIFICATION (22/22 TESTS)
 ================================================================================
 [PASS] BT1_Psychoacoustic_Bark_ATH_Masking
 [PASS] BT1_Residual_Vector_Quantization_RVQ4
@@ -114,19 +149,26 @@ TOKENVECTOR.AUDIO - COMPLETE 100% SUITE VERIFICATION (21/21 TESTS)
 [PASS] ADV3_FLAC_Rice_Entropy_And_LPC_Decode
 [PASS] ADV4_Partitioned_Convolution_Reverb
 [PASS] ADV5_NMF_Source_Separation_Vocal_Mask
+[PASS] ADV6_TKVA_Frame_Streaming_Direct_Playback
 ================================================================================
-TEST SUMMARY: 21/21 PASSED (100% PURE TOKENVECTOR .TKV)
+TEST SUMMARY: 22/22 PASSED (100% PURE TOKENVECTOR .TKV)
 ================================================================================
 ```
 
 ---
 
-## 👤 Tác Giả & Bản Quyền
+## Build
 
-- **Tác giả & Kiến trúc sư:** Trần Nguyên Hùng ([nguyen.hung.tran.18@gmail.com](mailto:nguyen.hung.tran.18@gmail.com))
-- **Hệ sinh thái:** TokenVector Language Platform (.tkv)
-- **Giấy phép:** [MIT License](LICENSE)
+```powershell
+.\build_package.ps1
+```
 
-<div align="center">
-<i>Được chế tác với niềm kiêu hãnh bằng 100% Sức mạnh của Ngôn ngữ Lập trình TokenVector.</i>
-</div>
+Script tự động phát hiện `tkvc.exe` từ `PATH`, biên dịch toàn bộ `.tkv`, lắp ráp `TokenVector.Audio.dll` qua `ilasm.exe`, và đóng gói NuGet `.nupkg`.
+
+---
+
+## Tác giả
+
+- **Tác giả:** Trần Nguyên Hùng ([nguyen.hung.tran.18@gmail.com](mailto:nguyen.hung.tran.18@gmail.com))
+- **Ngôn ngữ:** TokenVector (.tkv)
+- **Giấy phép:** [MIT](LICENSE)

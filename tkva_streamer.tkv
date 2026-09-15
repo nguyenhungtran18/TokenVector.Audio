@@ -1,0 +1,185 @@
+# -*- coding: utf-8 -*-
+# ====================================================================================================
+# TokenVector.Audio - TKVA Frame-Streaming Decoder (tkva_streamer.tkv)
+# Provides frame-by-frame (on-demand) decoding of .tkva bitstreams into the SPSC ring buffer,
+# enabling direct audio playback without full-file decompression to PCM/WAV.
+#
+# Architecture:
+#   TkvaStreamReader  - Sequential frame cursor over token_frames list
+#   TkvaPlaybackPump  - Pulls frames from TkvaStreamReader, decodes via RVQ codec,
+#                       and writes PCM samples into LockFreeRingBuffer
+#
+# 100% Pure TokenVector Language (.tkv)
+# ====================================================================================================
+
+__tkv_import__ = [
+    "audio_buffer",
+    "codec_rvq",
+    "tkva_container",
+    "streaming_plc"
+]
+
+
+class TkvaStreamReader:
+    # Sequential cursor over a pre-loaded token_frames list.
+    # In a real I/O scenario this would wrap a file seek position;
+    # here we model the bitstream as an in-memory list of RVQ token frames.
+    token_frames: "list"
+    total_frames: "i32"
+    cursor: "i32"
+    sample_rate: "i32"
+    channels: "i32"
+    frame_size: "i32"
+
+    def __init__(self, token_frames: "list", sample_rate: "i32", channels: "i32", frame_size: "i32"):
+        self.token_frames = token_frames
+        self.total_frames = len(token_frames)
+        self.cursor = 0
+        self.sample_rate = sample_rate
+        self.channels = channels
+        self.frame_size = frame_size
+
+    def has_next_frame(self) -> "i32":
+        # Returns 1 if there is at least one more frame to decode, 0 at EOF
+        if self.cursor < self.total_frames:
+            return 1
+        return 0
+
+    def read_next_frame_tokens(self) -> "list":
+        # Advance cursor and return the token vector for the current frame.
+        # Returns empty list at EOF — caller must check has_next_frame() first.
+        if self.cursor >= self.total_frames:
+            return []
+        tokens = self.token_frames[self.cursor]
+        self.cursor = self.cursor + 1
+        return tokens
+
+    def seek_to_frame(self, frame_index: "i32"):
+        # Random-access seek to an arbitrary frame index (for scrubbing / seek bar)
+        if frame_index < 0:
+            self.cursor = 0
+            return
+        if frame_index >= self.total_frames:
+            self.cursor = self.total_frames
+            return
+        self.cursor = frame_index
+
+    def get_position_seconds(self) -> "f64":
+        # Current playback position in seconds
+        samples_played = float(self.cursor) * float(self.frame_size)
+        return samples_played / float(self.sample_rate)
+
+    def get_duration_seconds(self) -> "f64":
+        # Total duration of the stream in seconds
+        total_samples = float(self.total_frames) * float(self.frame_size)
+        return total_samples / float(self.sample_rate)
+
+    def get_progress_ratio(self) -> "f64":
+        # Normalized playback progress [0.0, 1.0]
+        if self.total_frames == 0:
+            return 0.0
+        return float(self.cursor) / float(self.total_frames)
+
+
+class TkvaPlaybackPump:
+    # Pulls frames from TkvaStreamReader, decodes each RVQ token frame into PCM
+    # samples on-demand, and writes them into a LockFreeRingBuffer.
+    # The ring buffer is consumed by the downstream audio callback (DAC thread).
+    #
+    # Decoding is lazy: only the frames needed to keep the ring buffer filled
+    # are decoded, avoiding the upfront latency of full-file decompression.
+    codec: "NeuralAudioCodec"
+    reader: "TkvaStreamReader"
+    ring_buffer: "LockFreeRingBuffer"
+    is_playing: "i32"
+    frames_decoded: "i32"
+    samples_written: "i32"
+
+    def __init__(self, reader: "TkvaStreamReader", ring_buffer: "LockFreeRingBuffer", rvq_stages: "i32"):
+        self.reader = reader
+        self.ring_buffer = ring_buffer
+        self.codec = NeuralAudioCodec(rvq_stages, reader.frame_size)
+        self.is_playing = 0
+        self.frames_decoded = 0
+        self.samples_written = 0
+
+    def start(self):
+        self.is_playing = 1
+
+    def stop(self):
+        self.is_playing = 0
+
+    def pump_one_frame(self) -> "i32":
+        # Decode one RVQ token frame and push PCM samples into the ring buffer.
+        # Returns: 1 on success, 0 if paused / EOF / ring buffer full.
+        # The audio callback pumps this in a tight loop until the buffer is full.
+        if self.is_playing == 0:
+            return 0
+        if self.reader.has_next_frame() == 0:
+            # EOF: stop playback
+            self.is_playing = 0
+            return 0
+
+        tokens = self.reader.read_next_frame_tokens()
+        if len(tokens) == 0:
+            return 0
+
+        # Decode the RVQ token frame → PCM sample vector
+        pcm_samples = self.codec.decode_frame(tokens)
+        self.frames_decoded = self.frames_decoded + 1
+
+        # Write each sample into the SPSC ring buffer
+        # write_sample() returns 0 on overflow (ring buffer full)
+        i = 0
+        while i < len(pcm_samples):
+            ok = self.ring_buffer.write_sample(pcm_samples[i])
+            if ok == 1:
+                self.samples_written = self.samples_written + 1
+            i = i + 1
+
+        return 1
+
+    def pump_n_frames(self, n: "i32") -> "i32":
+        # Convenience: pump up to n frames in one call.
+        # Returns number of frames successfully decoded.
+        decoded = 0
+        i = 0
+        while i < n:
+            ok = self.pump_one_frame()
+            if ok == 0:
+                i = n  # break
+            else:
+                decoded = decoded + 1
+            i = i + 1
+        return decoded
+
+    def prefill_buffer(self, target_frames: "i32"):
+        # Pre-decode target_frames frames before starting playback to build
+        # a playout buffer (reduces starvation risk on the first audio callback).
+        i = 0
+        while i < target_frames:
+            ok = self.pump_one_frame()
+            if ok == 0:
+                i = target_frames  # break
+            i = i + 1
+
+    def read_pcm_sample(self) -> "f64":
+        # Pull one decoded PCM sample from the ring buffer for the DAC callback.
+        return self.ring_buffer.read_sample()
+
+    def get_buffered_sample_count(self) -> "i32":
+        # Approximate number of decoded samples sitting in the ring buffer.
+        # write_ptr > read_ptr (non-wrapped case)
+        wp = self.ring_buffer.write_ptr
+        rp = self.ring_buffer.read_ptr
+        cap = self.ring_buffer.capacity
+        if wp >= rp:
+            return wp - rp
+        return cap - rp + wp
+
+    def get_stats(self) -> "str":
+        # Human-readable playback statistics
+        pos_s = self.reader.get_position_seconds()
+        dur_s = self.reader.get_duration_seconds()
+        pct = self.reader.get_progress_ratio() * 100.0
+        return "frames_decoded=" + str(self.frames_decoded) + " samples_written=" + str(self.samples_written) + " pos=" + str(pos_s) + "s / " + str(dur_s) + "s (" + str(pct) + "%)"
