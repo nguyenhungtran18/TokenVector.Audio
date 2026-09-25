@@ -2,27 +2,30 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
   <metadata>
     <id>TokenVector.Audio</id>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
     <title>TokenVector.Audio - DSP &amp; Neural Audio Engine</title>
     <authors>Tran Nguyen Hung</authors>
     <owners>Tran Nguyen Hung</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <license type="expression">MIT</license>
     <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <icon>logo.png</icon>
     <projectUrl>https://github.com/nguyenhungtran18/TokenVector.Audio</projectUrl>
     <repository type="git" url="https://github.com/nguyenhungtran18/TokenVector.Audio" />
     <readme>README.md</readme>
-    <description>Audio DSP library implementing RVQ neural codec (3-8 kbps), psychoacoustic ATH masking, Chebyshev harmonic exciter, virtual bass synthesis, 3D binaural HRTF spatializer, LPC-16 packet loss concealment, 10-band equalizer, MDCT/IMDCT TDAC, WSOLA pitch shifter, FLAC lossless decoder, fast convolution reverb, NMF source separation, and TKVA frame-streaming decoder (direct .tkva playback without full-file decompression). All 22 modules written in pure TokenVector (.tkv).</description>
-    <tags>audio dsp neural-codec psychoacoustics rvq hrtf mdct wsola flac convolution-reverb nmf tkva-streaming tokenvector</tags>
+    <description>Audio DSP library implementing RVQ neural codec (3-8 kbps), psychoacoustic ATH masking, Chebyshev harmonic exciter, virtual bass synthesis, 3D binaural HRTF spatializer, LPC-16 packet loss concealment, 10-band equalizer, MDCT/IMDCT TDAC, WSOLA pitch shifter, FLAC lossless decoder, fast convolution reverb, NMF source separation, TKVA frame-streaming decoder, and SIMD hardware vectorization (AVX2/FMA). All 23 modules written in pure TokenVector (.tkv).</description>
+    <tags>audio dsp neural-codec psychoacoustics rvq hrtf mdct wsola flac convolution-reverb nmf tkva-streaming simd avx2 fma tokenvector</tags>
     <dependencies>
       <group targetFramework=".NETFramework4.8" />
       <group targetFramework="net8.0" />
     </dependencies>
   </metadata>
   <files>
+    <file src="logo.png" target="logo.png" />
     <file src="README.md" target="README.md" />
     <file src="LICENSE" target="LICENSE" />
     <file src="bin\Release\net8.0\TokenVector.Audio.dll" target="lib\net8.0\TokenVector.Audio.dll" />
     <file src="bin\Release\TokenVector.Audio.dll" target="lib\net48\TokenVector.Audio.dll" />
   </files>
 </package>
+

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # ====================================================================================================
 # TokenVector.Audio - Hybrid Neural-Psychoacoustic Codec & RVQ (codec_rvq.tkv)
-# Breakthrough 1: 3kbps - 8kbps Low-Bitrate Studio Compression
+# Breakthrough 1: 3kbps - 64kbps Studio Compression (Music & Speech)
 # 1. Psychoacoustic Masking Curve (Bark Scale & ATH Threshold)
-# 2. Residual Vector Quantization (RVQ 4-8 Stages)
+# 2. Residual Vector Quantization (RVQ 4-16 Stages, Configurable Bitrate)
 # 3. Neural Audio Encoder & Decoder
 # 100% Pure TokenVector Language (.tkv)
 # ====================================================================================================
@@ -146,19 +146,40 @@ class NeuralAudioCodec:
     rvq: "ResidualVectorQuantizer"
     masker: "PsychoacousticMasker"
     frame_size: "i32"
+    num_stages: "i32"
+    dim: "i32"
+    codebook_size: "i32"
+    tokens_per_frame: "i32"
+    bytes_per_token: "i32"
 
-    def __init__(self, num_stages: "i32", frame_size: "i32"):
+    def __init__(self, num_stages: "i32", frame_size: "i32", dim: "i32" = 16, codebook_size: "i32" = 256):
         self.frame_size = frame_size
-        self.rvq = ResidualVectorQuantizer(num_stages, 16, 256)
+        self.num_stages = num_stages
+        self.dim = dim
+        self.codebook_size = codebook_size
+        self.tokens_per_frame = num_stages
+        # Calculate bytes per token (1 byte for <=256, 2 bytes for >256)
+        if codebook_size <= 256:
+            self.bytes_per_token = 1
+        else:
+            self.bytes_per_token = 2
+        
+        self.rvq = ResidualVectorQuantizer(num_stages, dim, codebook_size)
         self.masker = PsychoacousticMasker()
 
+    def get_bitrate_kbps(self, sample_rate: "i32") -> "f64":
+        # Calculate bitrate: tokens_per_frame * bytes_per_token * 8 * frames_per_second
+        frames_per_sec = float(sample_rate) / float(self.frame_size)
+        bits_per_frame = float(self.tokens_per_frame) * float(self.bytes_per_token) * 8.0
+        return (bits_per_frame * frames_per_sec) / 1000.0
+
     def encode_frame(self, frame_samples: "list") -> "list":
-        # 1. Downsample/aggregate frame into 16-dimensional latent feature
+        # 1. Downsample/aggregate frame into dim-dimensional latent feature
         n = len(frame_samples)
-        step = n // 16
+        step = n // self.dim
         latent = []
         i = 0
-        while i < 16:
+        while i < self.dim:
             idx = i * step
             acc = 0.0
             k = 0
@@ -178,9 +199,9 @@ class NeuralAudioCodec:
         
         # 2. Up-sample latent feature back to full frame
         reconstructed = []
-        step = self.frame_size // 16
+        step = self.frame_size // self.dim
         i = 0
-        while i < 16:
+        while i < self.dim:
             val = latent[i]
             k = 0
             while k < step:
@@ -188,3 +209,21 @@ class NeuralAudioCodec:
                 k = k + 1
             i = i + 1
         return reconstructed
+
+
+# Preset configurations for different quality tiers
+def create_codec_preset(preset: "str", frame_size: "i32" = 480) -> "NeuralAudioCodec":
+    if preset == "voice_3kbps":
+        return NeuralAudioCodec(4, frame_size, 16, 256)      # 3 kbps - Voice
+    elif preset == "voice_6kbps":
+        return NeuralAudioCodec(6, frame_size, 16, 256)      # 6 kbps - Voice HQ
+    elif preset == "music_16kbps":
+        return NeuralAudioCodec(8, frame_size, 16, 512)      # 16 kbps - Music Low
+    elif preset == "music_32kbps":
+        return NeuralAudioCodec(12, frame_size, 16, 1024)    # 32 kbps - Music Med
+    elif preset == "music_64kbps":
+        return NeuralAudioCodec(16, frame_size, 32, 1024)    # 64 kbps - Music High
+    elif preset == "music_128kbps":
+        return NeuralAudioCodec(24, frame_size, 32, 2048)    # 128 kbps - Music Studio
+    else:
+        return NeuralAudioCodec(4, frame_size, 16, 256)      # Default voice

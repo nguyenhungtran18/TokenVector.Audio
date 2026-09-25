@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # ====================================================================================================
-# TokenVector.Audio - Proprietary Audio Container (.tkva) (tkva_container.tkv)
-# Breakthrough: Ultra-Compact 3-8 kbps Studio Audio Format
-# 1. TKVA Magic Header & Metadata Parser
+# TokenVector.Audio - Proprietary Audio Container (.tkva) v2 (tkva_container.tkv)
+# Supports: Voice 3-8kbps, Music 16-128kbps
+# 1. TKVA Magic Header with Codec Parameters
 # 2. RVQ Bitstream Frame Serializer / Deserializer
 # 100% Pure TokenVector Language (.tkv)
 # ====================================================================================================
@@ -19,26 +19,55 @@ class TkvaMetadata:
     channels: "i32"
     bitrate_kbps: "f64"
     frame_count: "i32"
+    # Codec parameters
+    num_stages: "i32"
+    dim: "i32"
+    codebook_size: "i32"
+    frame_size: "i32"
+    bytes_per_token: "i32"
 
-    def __init__(self, title: "str", artist: "str", sample_rate: "i32", channels: "i32"):
+    def __init__(self, title: "str", artist: "str", sample_rate: "i32", channels: "i32",
+                 num_stages: "i32" = 4, dim: "i32" = 16, codebook_size: "i32" = 256, frame_size: "i32" = 480):
         self.title = title
         self.artist = artist
         self.sample_rate = sample_rate
         self.channels = channels
-        self.bitrate_kbps = 6.4
+        self.num_stages = num_stages
+        self.dim = dim
+        self.codebook_size = codebook_size
+        self.frame_size = frame_size
+        # Calculate bitrate
+        if codebook_size <= 256:
+            self.bytes_per_token = 1
+        else:
+            self.bytes_per_token = 2
+        frames_per_sec = float(sample_rate) / float(frame_size)
+        bits_per_frame = float(num_stages) * float(self.bytes_per_token) * 8.0
+        self.bitrate_kbps = (bits_per_frame * frames_per_sec) / 1000.0
         self.frame_count = 0
 
 
 class TkvaContainer:
     codec: "NeuralAudioCodec"
     frame_size: "i32"
+    num_stages: "i32"
+    dim: "i32"
+    codebook_size: "i32"
+    bytes_per_token: "i32"
 
-    def __init__(self, rvq_stages: "i32", frame_size: "i32"):
+    def __init__(self, rvq_stages: "i32", frame_size: "i32", dim: "i32" = 16, codebook_size: "i32" = 256):
         self.frame_size = frame_size
-        self.codec = NeuralAudioCodec(rvq_stages, frame_size)
+        self.num_stages = rvq_stages
+        self.dim = dim
+        self.codebook_size = codebook_size
+        if codebook_size <= 256:
+            self.bytes_per_token = 1
+        else:
+            self.bytes_per_token = 2
+        self.codec = NeuralAudioCodec(rvq_stages, frame_size, dim, codebook_size)
 
     def encode_audio_to_tokens(self, buffer: "AudioBuffer") -> "list":
-        # Split audio into frames and quantize each frame into 4-stage RVQ tokens
+        # Split audio into frames and quantize each frame into RVQ tokens
         total_samples = buffer.channels * buffer.frame_count
         all_tokens = []
         
@@ -86,5 +115,97 @@ class TkvaContainer:
 
     def serialize_header(self, meta: "TkvaMetadata") -> "str":
         # Format TKVA human-readable and binary container header
-        header = "TKVA_V1|" + meta.title + "|" + meta.artist + "|" + str(meta.sample_rate) + "|" + str(meta.channels) + "|" + str(meta.bitrate_kbps)
+        header = "TKVA_V2|" + meta.title + "|" + meta.artist + "|" + str(meta.sample_rate) + "|" + str(meta.channels) + "|" + str(meta.bitrate_kbps) + "|" + str(meta.num_stages) + "|" + str(meta.dim) + "|" + str(meta.codebook_size) + "|" + str(meta.frame_size)
         return header
+
+    def serialize_binary_header(self, meta: "TkvaMetadata") -> "list":
+        # Binary header (32 bytes): magic(4) + version(1) + sample_rate(2) + channels(1) + reserved(1) + num_stages(2) + dim(2) + codebook_size(2) + frame_size(2) + bytes_per_token(1) + reserved(16)
+        header = []
+        header.append(84)   # 'T'
+        header.append(75)   # 'K'
+        header.append(86)   # 'V'
+        header.append(65)   # 'A'
+        header.append(2)    # version 2
+        header.append(meta.sample_rate & 0xFF)
+        header.append((meta.sample_rate >> 8) & 0xFF)
+        header.append(meta.channels)
+        header.append(0)    # reserved
+        header.append(meta.num_stages & 0xFF)
+        header.append((meta.num_stages >> 8) & 0xFF)
+        header.append(meta.dim & 0xFF)
+        header.append((meta.dim >> 8) & 0xFF)
+        header.append(meta.codebook_size & 0xFF)
+        header.append((meta.codebook_size >> 8) & 0xFF)
+        header.append(meta.frame_size & 0xFF)
+        header.append((meta.frame_size >> 8) & 0xFF)
+        header.append(meta.bytes_per_token)
+        # 16 bytes reserved
+        i = 0
+        while i < 16:
+            header.append(0)
+            i = i + 1
+        return header
+
+    def serialize_binary_payload(self, token_frames: "list") -> "list":
+        # Serialize token frames to binary payload
+        payload = []
+        i = 0
+        while i < len(token_frames):
+            tokens = token_frames[i]
+            k = 0
+            while k < len(tokens):
+                token = tokens[k]
+                if self.bytes_per_token == 1:
+                    payload.append(token & 0xFF)
+                else:
+                    payload.append(token & 0xFF)
+                    payload.append((token >> 8) & 0xFF)
+                k = k + 1
+            i = i + 1
+        return payload
+
+    def deserialize_binary_header(self, header_bytes: "list") -> "TkvaMetadata":
+        # Deserialize binary header
+        if len(header_bytes) < 32:
+            return None
+        if not (header_bytes[0] == 84 and header_bytes[1] == 75 and header_bytes[2] == 86 and header_bytes[3] == 65):
+            return None
+        
+        meta = TkvaMetadata("", "", 48000, 2)
+        meta.sample_rate = header_bytes[5] | (header_bytes[6] << 8)
+        meta.channels = header_bytes[7]
+        meta.num_stages = header_bytes[9] | (header_bytes[10] << 8)
+        meta.dim = header_bytes[11] | (header_bytes[12] << 8)
+        meta.codebook_size = header_bytes[13] | (header_bytes[14] << 8)
+        meta.frame_size = header_bytes[15] | (header_bytes[16] << 8)
+        meta.bytes_per_token = header_bytes[17]
+        
+        # Calculate bitrate
+        frames_per_sec = float(meta.sample_rate) / float(meta.frame_size)
+        bits_per_frame = float(meta.num_stages) * float(meta.bytes_per_token) * 8.0
+        meta.bitrate_kbps = (bits_per_frame * frames_per_sec) / 1000.0
+        
+        return meta
+
+    def deserialize_binary_payload(self, payload_bytes: "list", meta: "TkvaMetadata") -> "list":
+        # Deserialize binary payload to token frames
+        tokens_per_frame = meta.num_stages
+        bytes_per_frame = tokens_per_frame * meta.bytes_per_token
+        num_frames = len(payload_bytes) // bytes_per_frame
+        
+        token_frames = []
+        i = 0
+        while i < num_frames:
+            tokens = []
+            k = 0
+            while k < tokens_per_frame:
+                offset = i * bytes_per_frame + k * meta.bytes_per_token
+                if meta.bytes_per_token == 1:
+                    token = payload_bytes[offset]
+                else:
+                    token = payload_bytes[offset] | (payload_bytes[offset + 1] << 8)
+                tokens.append(token)
+                k = k + 1
+            token_frames.append(tokens)
+            i = i + 1
+        return token_frames

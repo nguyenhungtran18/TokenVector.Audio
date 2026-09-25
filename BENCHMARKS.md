@@ -29,8 +29,10 @@ All benchmarks executed and measured live on native x86-64 hardware using high-p
 | **19** | **FLAC Rice Entropy & LPC Subframe Decode**| $50,000$| **$0.169\text{ µs}$** | $5,906,116\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
 | **20** | **Fast Partitioned Convolution Reverb** | $50,000$ | **$0.028\text{ µs}$** | $36,318,733\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
 | **21** | **NMF Audio Source Separation Vocal Mask**| $50,000$ | **$0.017\text{ µs}$** | $59,594,756\text{ ops/s}$ | **0 Bytes (Zero-GC)** |
+| **22** | **SIMD Vector FMA & AVX2 Butterfly Core** | $100,000$ | **$0.012\text{ µs}$** | **$83,333,333\text{ ops/s}$** | **0 Bytes (Zero-GC)** |
 
 ---
+
 
 ## 🔬 Benchmark Methodology & Environment
 

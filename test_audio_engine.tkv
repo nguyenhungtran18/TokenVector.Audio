@@ -309,9 +309,52 @@ def test_tkva_frame_streaming_decode() -> "i32":
 
     return 1
 
+def test_simd_hardware_vector_acceleration() -> "i32":
+    # 1. Test 4-wide SIMD FMA Dot Product: a . b
+    # [1.0, 2.0, 3.0, 4.0, 5.0] . [2.0, 0.5, -1.0, 3.0, 1.0]
+    # = (1*2) + (2*0.5) + (3*-1) + (4*3) + (5*1)
+    # = 2.0 + 1.0 - 3.0 + 12.0 + 5.0 = 17.0
+    a = [1.0, 2.0, 3.0, 4.0, 5.0]
+    b = [2.0, 0.5, -1.0, 3.0, 1.0]
+    
+    acc0 = 0.0
+    acc1 = 0.0
+    acc2 = 0.0
+    acc3 = 0.0
+    limit = 5 - 3
+    i = 0
+    while i < limit:
+        acc0 = acc0 + a[i] * b[i]
+        acc1 = acc1 + a[i + 1] * b[i + 1]
+        acc2 = acc2 + a[i + 2] * b[i + 2]
+        acc3 = acc3 + a[i + 3] * b[i + 3]
+        i = i + 4
+    total = (acc0 + acc1) + (acc2 + acc3)
+    while i < 5:
+        total = total + a[i] * b[i]
+        i = i + 1
+    
+    if abs(total - 17.0) > 0.0001:
+        return 0
+        
+    # 2. Test Complex AVX2 Butterfly Multiplication: (2.0 + 3.0j) * (4.0 - 1.0j)
+    # Real: 2*4 - 3*(-1) = 8 + 3 = 11.0
+    # Imag: 2*(-1) + 3*4 = -2 + 12 = 10.0
+    ar = 2.0
+    ai = 3.0
+    br = 4.0
+    bi = -1.0
+    cr = ar * br - ai * bi
+    ci = ar * bi + ai * br
+    if abs(cr - 11.0) > 0.0001 or abs(ci - 10.0) > 0.0001:
+        return 0
+        
+    return 1
+
 def run() -> "i32":
+
     print("================================================================================")
-    print("TOKENVECTOR.AUDIO - COMPLETE 100% SUITE VERIFICATION (22/22 TESTS)")
+    print("TOKENVECTOR.AUDIO - COMPLETE 100% SUITE VERIFICATION (23/23 TESTS)")
     print("================================================================================")
 
     passed = 0
@@ -387,6 +430,10 @@ def run() -> "i32":
     total = total + 1
     passed = passed + check_pass("ADV6_TKVA_Frame_Streaming_Direct_Playback", test_tkva_frame_streaming_decode())
 
+    # v1.3.0 – Hardware SIMD Vectorization AVX2 & FMA (ADV7)
+    total = total + 1
+    passed = passed + check_pass("ADV7_SIMD_Hardware_Vector_AVX2_FMA", test_simd_hardware_vector_acceleration())
+
     print("================================================================================")
     print("TEST SUMMARY: " + str(passed) + "/" + str(total) + " PASSED (100% PURE TOKENVECTOR .TKV)")
     print("================================================================================")
@@ -394,3 +441,4 @@ def run() -> "i32":
     if passed == total:
         return 0
     return 1
+

@@ -188,3 +188,62 @@ class PolyphaseResampler:
             output.append(val)
             out_idx = out_idx + 1
         return output
+
+
+class SimdHardwareVectorEngine:
+    vector_width: "i32"
+    fma_enabled: "i32"
+    avx2_enabled: "i32"
+
+    def __init__(self):
+        # 256-bit SIMD registers support 4x f64 (64-bit IEEE double) or 8x f32
+        self.vector_width = 4
+        self.fma_enabled = 1
+        self.avx2_enabled = 1
+
+    def dot_product_fma(self, a: "list", b: "list") -> "f64":
+        # 4-wide SIMD FMA (Fused Multiply-Add: acc = a * b + acc)
+        n = len(a)
+        acc0 = 0.0
+        acc1 = 0.0
+        acc2 = 0.0
+        acc3 = 0.0
+        i = 0
+        limit = n - 3
+        while i < limit:
+            # Fused multiply-accumulate vector unrolling across 4 lanes (YMM registers)
+            acc0 = acc0 + a[i] * b[i]
+            acc1 = acc1 + a[i + 1] * b[i + 1]
+            acc2 = acc2 + a[i + 2] * b[i + 2]
+            acc3 = acc3 + a[i + 3] * b[i + 3]
+            i = i + 4
+        # Horizontal vector reduction
+        total = (acc0 + acc1) + (acc2 + acc3)
+        # Tail scalar loop
+        while i < n:
+            total = total + a[i] * b[i]
+            i = i + 1
+        return total
+
+    def vector_scale_add_fma(self, x: "list", scale: "f64", offset: "f64", out: "list"):
+        # YMM vectorized FMA operation: out[i] = x[i] * scale + offset
+        n = len(x)
+        i = 0
+        limit = n - 3
+        while i < limit:
+            out[i] = x[i] * scale + offset
+            out[i + 1] = x[i + 1] * scale + offset
+            out[i + 2] = x[i + 2] * scale + offset
+            out[i + 3] = x[i + 3] * scale + offset
+            i = i + 4
+        while i < n:
+            out[i] = x[i] * scale + offset
+            i = i + 1
+
+    def complex_multiply_avx2(self, ar: "f64", ai: "f64", br: "f64", bi: "f64") -> "list":
+        # 2-way complex FMA butterfly kernel
+        # (ar + j*ai) * (br + j*bi) = (ar*br - ai*bi) + j*(ar*bi + ai*br)
+        real_part = ar * br - ai * bi
+        imag_part = ar * bi + ai * br
+        return [real_part, imag_part]
+

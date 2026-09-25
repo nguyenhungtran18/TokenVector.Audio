@@ -85,6 +85,7 @@ New-Item -ItemType Directory -Path "$pkgDir\package\services\metadata\core-prope
 Copy-Item "TokenVector.Audio.nuspec" "$pkgDir\TokenVector.Audio.nuspec"
 Copy-Item "README.md" "$pkgDir\README.md"
 Copy-Item "LICENSE" "$pkgDir\LICENSE"
+if (Test-Path "logo.png") { Copy-Item "logo.png" "$pkgDir\logo.png" }
 Copy-Item "bin\Release\net8.0\TokenVector.Audio.dll" "$pkgDir\lib\net8.0\TokenVector.Audio.dll"
 Copy-Item "bin\Release\TokenVector.Audio.dll" "$pkgDir\lib\net48\TokenVector.Audio.dll"
 
@@ -95,12 +96,14 @@ $contentTypes = @"
   <Default Extension="psmdcp" ContentType="application/vnd.openxmlformats-package.core-properties+xml" />
   <Default Extension="nuspec" ContentType="application/octet-stream" />
   <Default Extension="md" ContentType="text/markdown" />
+  <Default Extension="png" ContentType="image/png" />
   <Default Extension="dll" ContentType="application/octet-stream" />
   <Default Extension="txt" ContentType="text/plain" />
   <Default Extension="" ContentType="text/plain" />
 </Types>
 "@
 [System.IO.File]::WriteAllText("$pkgDir\[Content_Types].xml", $contentTypes)
+
 
 $rels = @"
 <?xml version="1.0" encoding="utf-8"?>

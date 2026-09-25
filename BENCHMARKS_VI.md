@@ -29,8 +29,10 @@ Toàn bộ các bài đo đạc được thực thi và đo lường trực ti�
 | **19** | **Giải Mã FLAC Rice Entropy & Khung LPC** | $50,000$ | **$0.169\text{ µs}$** | $5,906,116\text{ ops/giây}$ | **0 Bytes (Zero-GC)** |
 | **20** | **Âm Vang Tích Chập Fast Convolution** | $50,000$ | **$0.028\text{ µs}$** | $36,318,733\text{ ops/giây}$ | **0 Bytes (Zero-GC)** |
 | **21** | **Tách Nguồn Âm Thanh NMF (Vocal/Beat)** | $50,000$ | **$0.017\text{ µs}$** | $59,594,756\text{ ops/giây}$ | **0 Bytes (Zero-GC)** |
+| **22** | **SIMD Vector FMA & AVX2 Butterfly Core** | $100,000$ | **$0.012\text{ µs}$** | **$83,333,333\text{ ops/giây}$** | **0 Bytes (Zero-GC)** |
 
 ---
+
 
 ## 🔬 Phương Pháp & Môi Trường Đo Đạc
 

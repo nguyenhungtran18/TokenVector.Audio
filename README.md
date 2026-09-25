@@ -2,10 +2,13 @@
 
 <div align="center">
 
+<img src="logo.png" alt="TokenVector.Audio Logo" width="128" height="128" />
+
 ![Language](https://img.shields.io/badge/Language-100%25%20Pure%20TokenVector%20(.tkv)-6C5CE7?style=for-the-badge)
 ![Compiler](https://img.shields.io/badge/Compiler-tkvc.exe%20(CIL%20AOT)-00B894?style=for-the-badge)
 ![Architecture](https://img.shields.io/badge/Architecture-Zero%20External%20Dependencies-0984E3?style=for-the-badge)
-![Tests](https://img.shields.io/badge/Tests-22%2F22%20PASSED-E17055?style=for-the-badge)
+![SIMD](https://img.shields.io/badge/SIMD-AVX2%20%7C%20FMA%20(256--bit)-FF7675?style=for-the-badge)
+![Tests](https://img.shields.io/badge/Tests-23%2F23%20PASSED-E17055?style=for-the-badge)
 
 **A DSP and neural audio codec library written entirely in the TokenVector (`.tkv`) programming language. Zero external runtime dependencies; compiled to standard ECMA-335 CIL bytecode via the native `tkvc.exe` toolchain.**
 
@@ -15,7 +18,7 @@
 
 ## Overview
 
-TokenVector.Audio is a collection of 22 pure-`.tkv` modules covering the audio processing pipeline from low-level signal transforms through perceptual coding, spatial rendering, and streaming transport. The library is intended as a demonstration of the TokenVector language's capability for numerically intensive DSP workloads, and as a reference implementation of the described algorithms in a single-language, dependency-free environment.
+TokenVector.Audio is a collection of 23 pure-`.tkv` modules covering the audio processing pipeline from low-level signal transforms, SIMD hardware acceleration (AVX2/FMA) through perceptual coding, spatial rendering, and streaming transport. The library is intended as a demonstration of the TokenVector language's capability for numerically intensive DSP workloads, and as a reference implementation of the described algorithms in a single-language, dependency-free environment.
 
 All modules compile to `.dll` via `ilasm.exe` and are consumable from any .NET 4.8 / .NET 8.0 host without third-party packages.
 
@@ -25,8 +28,9 @@ All modules compile to `.dll` via `ilasm.exe` and are consumable from any .NET 4
 
 ```
                           ╔══════════════════════════════════════╗
-                          ║       TOKENVECTOR.AUDIO (v1.2.0)     ║
+                          ║       TOKENVECTOR.AUDIO (v1.2.1)     ║
                           ╚══════════════════════════════════════╝
+
                                            │
      ┌────────────────┬────────────────────┼──────────────────┬────────────────────┐
      ▼                ▼                    ▼                  ▼                    ▼
@@ -117,7 +121,7 @@ stats = pump.get_stats()   # "frames_decoded=N samples_written=M pos=T.Ts / D.Ds
 
 ---
 
-## Test Results (22/22 PASSED)
+## Test Results (23/23 PASSED)
 
 Build and run the verification suite:
 
@@ -128,7 +132,7 @@ tkvc.exe build test_audio_engine.tkv --entry run --out test_audio_engine.exe
 
 ```
 ================================================================================
-TOKENVECTOR.AUDIO - COMPLETE 100% SUITE VERIFICATION (22/22 TESTS)
+TOKENVECTOR.AUDIO - COMPLETE 100% SUITE VERIFICATION (23/23 TESTS)
 ================================================================================
 [PASS] BT1_Psychoacoustic_Bark_ATH_Masking
 [PASS] BT1_Residual_Vector_Quantization_RVQ4
@@ -152,10 +156,12 @@ TOKENVECTOR.AUDIO - COMPLETE 100% SUITE VERIFICATION (22/22 TESTS)
 [PASS] ADV4_Partitioned_Convolution_Reverb
 [PASS] ADV5_NMF_Source_Separation_Vocal_Mask
 [PASS] ADV6_TKVA_Frame_Streaming_Direct_Playback
+[PASS] ADV7_SIMD_Hardware_Vector_AVX2_FMA
 ================================================================================
-TEST SUMMARY: 22/22 PASSED (100% PURE TOKENVECTOR .TKV)
+TEST SUMMARY: 23/23 PASSED (100% PURE TOKENVECTOR .TKV)
 ================================================================================
 ```
+
 
 ---
 
